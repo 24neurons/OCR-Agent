@@ -20,10 +20,16 @@ samples, guidance on mobile development, and a full API reference.
 
 1. First, you need to have flutter installed in your computer
 2. clone this repository:
+   
   ``` git clone https://github.com/24neurons/OCR-Agent.git```
-3. Move to the repository:
+  
+4. Move to the repository:
+   
    ```cd OCR-Agent```
-4. Install the dependencies
+   
+6. Install the dependencies
+   
    ```flutter pub get```
-5. Run the project 
+   
+8. Run the project 
    
