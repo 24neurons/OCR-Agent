@@ -16,6 +16,25 @@ For help getting started with Flutter development, view the
 samples, guidance on mobile development, and a full API reference.
 
 
+## How to run the project. 
+
+1. First, you need to have flutter installed in your computer
+2. clone this repository:
+   
+  ``` git clone https://github.com/24neurons/OCR-Agent.git```
+  
+4. Move to the repository:
+   
+   ```cd OCR-Agent```
+   
+6. Install the dependencies
+   
+   ```flutter pub get```
+   
+8. Run the project 
+   
+
+
 ## To-do list
 1. Add camera button to scan text 
 2. Display text scanned on the screen
