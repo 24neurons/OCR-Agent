@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'dart:async';
 import 'package:camera/camera.dart';
+import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 
 // 1. GLOBAL CAMERA LIST INITIALIZATION
 // This list holds the available cameras on the device.
@@ -57,6 +58,8 @@ class _MyHomePageState extends State<MyHomePage> {
   File? _imageFile;
   String _extractedText = 'Select an image or take a picture to begin OCR.';
   bool _isProcessing = false;
+  String _translatedText = "Translation";
+  bool _isTranslating = false;
 
   // --- Image Picking and Processing Logic ---
 
@@ -112,6 +115,29 @@ class _MyHomePageState extends State<MyHomePage> {
           : recognizedText.text;
       _isProcessing = false;
     });
+  }
+
+  Future<void> _translateText(String _extractedText) async {
+    // Placeholder for future translation functionality
+    setState(() {
+      _translatedText = "Translated Text";
+      _isTranslating = true;
+    });
+
+    // var _sourceLanguage = TranslateLanguage.english;
+    // var _targetLanguage = TranslateLanguage.spanish;
+    final TranslateLanguage sourceLanguage = TranslateLanguage.english;
+
+    final TranslateLanguage targetLanguage = TranslateLanguage.spanish;
+
+    final onDeviceTranslator = OnDeviceTranslator(
+      sourceLanguage: sourceLanguage,
+      targetLanguage: targetLanguage,
+    );
+    final String response = await onDeviceTranslator.translateText(
+      _extractedText,
+    );
+    print(response);
   }
 
   // --- UI Build ---
@@ -170,6 +196,23 @@ class _MyHomePageState extends State<MyHomePage> {
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   backgroundColor: Theme.of(context).primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+
+              // Button 3: Translate (Placeholder)
+              const SizedBox(height: 15),
+              ElevatedButton.icon(
+                onPressed: _isProcessing
+                    ? null
+                    : () {
+                        _translateText(_extractedText);
+                      },
+                icon: const Icon(Icons.translate),
+                label: const Text('Translate Text'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
                 ),
               ),
