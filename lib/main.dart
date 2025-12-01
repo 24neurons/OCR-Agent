@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'
-    show
-        rootBundle; // Keep for the moment, but not strictly used in the simplified method below
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -9,12 +7,14 @@ import 'dart:async';
 import 'package:camera/camera.dart';
 import 'package:translator_plus/translator_plus.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:syncfusion_flutter_pdf/pdf.dart'
-    as syncfusion; // PREFIXED to solve the PdfDocument conflict
+import 'package:syncfusion_flutter_pdf/pdf.dart' as syncfusion;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
+
+// Import the service used for ChatGPT
+import 'services/chatgpt_service.dart';
 
 // IMPORT THÊM CHAT SCREEN
 import 'chat_screen.dart'; // Assuming chat_screen.dart exists
@@ -130,7 +130,7 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          // 1. Text Tab (Placeholder)
+          // 1. Text Tab (Functional)
           const TextTabContent(),
           // 2. Images Tab (Your existing MyHomePage for OCR)
           MyHomePage(title: 'OCR Scanner', cameras: widget.cameras),
@@ -145,37 +145,135 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen>
 }
 
 // =========================================================================
-// TextTabContent (Placeholder)
+// TextTabContent (FUNCTIONAL)
 // =========================================================================
 
-class TextTabContent extends StatelessWidget {
+class TextTabContent extends StatefulWidget {
   const TextTabContent({super.key});
 
   @override
+  State<TextTabContent> createState() => _TextTabContentState();
+}
+
+class _TextTabContentState extends State<TextTabContent> {
+  final TextEditingController _inputController = TextEditingController();
+  String _translatedText = 'Translation will appear here';
+  bool _isTranslating = false;
+
+  final translator = GoogleTranslator();
+
+  // Language map (used to determine source/target languages)
+  final Map<String, String> _languages = {
+    'Detect language': 'auto', // Special code for auto-detection
+    'English': 'en',
+    'Vietnamese': 'vi',
+    'Spanish': 'es',
+    'French': 'fr',
+  };
+
+  String _sourceLanguageCode = 'auto';
+  String _targetLanguageCode = 'en';
+
+  @override
+  void dispose() {
+    _inputController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _translateText() async {
+    final inputText = _inputController.text;
+    if (inputText.isEmpty) return;
+
+    setState(() {
+      _isTranslating = true;
+      _translatedText = 'Translating...';
+    });
+
+    try {
+      final translation = await translator.translate(
+        inputText,
+        from: _sourceLanguageCode,
+        to: _targetLanguageCode,
+      );
+
+      setState(() {
+        _translatedText = translation.text;
+        _isTranslating = false;
+      });
+    } catch (e) {
+      print('Text Tab Translation Error: $e');
+      setState(() {
+        _translatedText = 'Error during translation. Check network/API status.';
+        _isTranslating = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Helper to get the display name for the target language
+    String getTargetName() {
+      return _languages.entries
+          .firstWhere(
+            (e) => e.value == _targetLanguageCode,
+            orElse: () => const MapEntry('Unknown', ''),
+          )
+          .key;
+    }
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          // Language selectors (simple version)
+          // Language Selectors (Top Row)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              TextButton(
-                onPressed: () {},
-                child: const Text('Detect language'),
+              // Source Language Dropdown
+              DropdownButton<String>(
+                value: _sourceLanguageCode,
+                items: _languages.entries.map((entry) {
+                  return DropdownMenuItem<String>(
+                    value: entry.value,
+                    child: Text(entry.key),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _sourceLanguageCode = newValue!;
+                  });
+                },
               ),
+
               const Icon(Icons.arrow_forward_ios),
-              TextButton(
-                onPressed: () {},
-                child: const Text('English'),
-              ), // Default target
+
+              // Target Language Dropdown (English is default target)
+              DropdownButton<String>(
+                value: _targetLanguageCode,
+                items: _languages.entries
+                    .where((e) => e.key != 'Detect language')
+                    .map((entry) {
+                      return DropdownMenuItem<String>(
+                        value: entry.value,
+                        child: Text(entry.key),
+                      );
+                    })
+                    .toList(),
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _targetLanguageCode = newValue!;
+                  });
+                },
+              ),
             ],
           ),
           const SizedBox(height: 10),
+
+          // Input/Output Boxes
           Expanded(
             child: Row(
               children: [
+                // Input Box (Left)
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
@@ -183,10 +281,11 @@ class TextTabContent extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     padding: const EdgeInsets.all(8.0),
-                    child: const TextField(
+                    child: TextField(
+                      controller: _inputController,
                       maxLines: null, // Allows multiline input
                       expands: true,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: 'Enter text',
                         border: InputBorder.none,
                       ),
@@ -194,6 +293,8 @@ class TextTabContent extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
+
+                // Output Box (Right)
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(
@@ -201,34 +302,71 @@ class TextTabContent extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.grey.shade300),
                     ),
-                    padding: const EdgeInsets.all(8.0),
+                    padding: const EdgeInsets.all(10.0),
                     alignment: Alignment.topLeft,
-                    child: const Text(
-                      'Translation will appear here',
-                      style: TextStyle(color: Colors.grey),
-                    ),
+                    child: _isTranslating
+                        ? const Center(child: CircularProgressIndicator())
+                        : SelectableText(
+                            _translatedText,
+                            style: TextStyle(
+                              color: Colors.blueGrey[800],
+                              fontSize: 16,
+                            ),
+                          ),
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 10),
+
+          // Bottom Bar with Microphone and Translation Button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(onPressed: () {}, icon: const Icon(Icons.mic)),
-              const Text('0 / 5,000'),
-              DropdownButton<String>(
-                value: 'en', // Default value
-                items: const [
-                  DropdownMenuItem(value: 'en', child: Text('English')),
-                  DropdownMenuItem(value: 'vi', child: Text('Vietnamese')),
+              // Microphone/Input Info
+              Row(
+                children: [
+                  IconButton(onPressed: () {}, icon: const Icon(Icons.mic)),
+                  const Text('0 / 5,000'),
                 ],
-                onChanged: (value) {},
+              ),
+
+              // Translation Button (The missing piece!)
+              ElevatedButton.icon(
+                onPressed: _isTranslating || _inputController.text.isEmpty
+                    ? null
+                    : _translateText,
+                icon: _isTranslating
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                    : const Icon(Icons.translate, size: 20),
+                label: Text(
+                  getTargetName(),
+                  style: const TextStyle(fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
         ],
       ),
     );
@@ -252,6 +390,8 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
   bool _isProcessing = false;
   bool _isTranslating = false;
   final translator = GoogleTranslator();
+  final ChatGPTService _chatGPTService =
+      ChatGPTService(); // NEW: For summarization
 
   // Language map
   final Map<String, String> _languages = {
@@ -267,7 +407,6 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
 
   // Helper function to find the language name from its code
   String _getLanguageName(String code) {
-    // Finds the key (language name) based on the value (language code)
     return _languages.entries
         .firstWhere(
           (entry) => entry.value == code,
@@ -276,22 +415,28 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
         .key;
   }
 
+  // NEW: Layout processing function
+  List<String> _processTextForLayout(String rawText) {
+    return rawText
+        .split(RegExp(r'\n\s*\n'))
+        .where((s) => s.trim().isNotEmpty)
+        .toList();
+  }
+
   Future<void> _pickDocumentFile() async {
-    // 1. Show processing status and open file picker
     setState(() {
       _documentStatus = 'Opening file picker...';
       _isProcessing = true;
       _extractedText = '';
-      _sourceFileName = ''; // Clear file name on new attempt
+      _sourceFileName = '';
     });
 
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf'], // Focus only on PDF
+      allowedExtensions: ['pdf'],
       allowMultiple: false,
     );
 
-    // 2. Process the picked file
     if (result != null && result.files.single.path != null) {
       final pickedFile = File(result.files.single.path!);
       final fileName = result.files.single.name;
@@ -309,7 +454,6 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
         });
       }
     } else {
-      // User canceled
       setState(() {
         _documentStatus = 'File selection canceled.';
         _isProcessing = false;
@@ -321,7 +465,6 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
   Future<void> _extractTextFromPdf(File pdfFile) async {
     try {
       final List<int> bytes = await pdfFile.readAsBytes();
-      // Use the prefixed PdfDocument here
       final syncfusion.PdfDocument document = syncfusion.PdfDocument(
         inputBytes: bytes,
       );
@@ -336,7 +479,6 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
         _isProcessing = false;
       });
 
-      // Trigger translation after extraction
       if (!text.isEmpty) {
         await _translateExtractedText(text);
       } else {
@@ -362,14 +504,19 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
     });
 
     try {
-      var translation = await translator.translate(
-        textToTranslate,
-        to: _selectedTargetLanguageCode,
-      );
+      final sourceParagraphs = _processTextForLayout(textToTranslate);
 
-      // --- PDF Generation ---
+      final List<String> translatedParagraphs = [];
+      for (final paragraph in sourceParagraphs) {
+        final translation = await translator.translate(
+          paragraph,
+          to: _selectedTargetLanguageCode,
+        );
+        translatedParagraphs.add(translation.text);
+      }
+
       await _createAndSaveTranslatedPdf(
-        translation.text,
+        translatedParagraphs,
         _selectedTargetLanguageCode,
       );
 
@@ -387,47 +534,52 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
 
   // --- Function to Create and Save the Translated PDF (SIMPLIFIED) ---
   Future<void> _createAndSaveTranslatedPdf(
-    String translatedText,
+    List<String> translatedParagraphs,
     String langCode,
   ) async {
     try {
       final pdf = pw.Document();
 
-      // NOTE: Removed custom font loading to simplify. Non-Latin characters may not display correctly.
-
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
           build: (pw.Context context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  // CORRECTED: Using the helper function here
-                  'Translated Document (${_getLanguageName(langCode)})',
-                  style: pw.TextStyle(
-                    fontSize: 24,
-                    fontWeight: pw.FontWeight.bold,
+            List<pw.Widget> content = [
+              pw.Text(
+                'Translated Document (${_getLanguageName(langCode)})',
+                style: pw.TextStyle(
+                  fontSize: 24,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 20),
+            ];
+
+            for (final paragraph in translatedParagraphs) {
+              content.add(
+                pw.Padding(
+                  padding: const pw.EdgeInsets.only(bottom: 12),
+                  child: pw.Text(
+                    paragraph,
+                    style: const pw.TextStyle(fontSize: 12),
+                    textAlign: pw.TextAlign.justify,
                   ),
                 ),
-                pw.SizedBox(height: 20),
-                // Using basic default font styling
-                pw.Text(
-                  translatedText,
-                  style: const pw.TextStyle(fontSize: 12),
-                ),
-              ],
+              );
+            }
+
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: content,
             );
           },
         ),
       );
 
-      // Get the documents directory to save the file
       final directory = await getApplicationDocumentsDirectory();
       final fileName = '${_sourceFileName}_translated_${langCode}.pdf';
       final file = File('${directory.path}/$fileName');
 
-      // Save the PDF file
       await file.writeAsBytes(await pdf.save());
 
       if (mounted) {
@@ -435,7 +587,6 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
           _documentStatus = 'Translation Complete! File saved to: ${file.path}';
         });
 
-        // Open the file for the user to view (requires open_filex package)
         await OpenFilex.open(file.path);
       }
     } catch (e) {
@@ -448,8 +599,78 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
     }
   }
 
+  // --- NEW: Summarization Logic ---
+  Future<void> _summarizeText() async {
+    if (_extractedText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please upload and extract text from a document first.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _documentStatus = 'Requesting summary from AI...';
+      _isTranslating = true;
+    });
+
+    try {
+      final messages = <Map<String, String>>[
+        {
+          'role': 'system',
+          'content':
+              'You are an expert summarization bot. Provide a concise, three-sentence summary of the user\'s input text.',
+        },
+        {'role': 'user', 'content': _extractedText},
+      ];
+
+      final summary = await _chatGPTService.sendChat(messages);
+
+      if (mounted) {
+        setState(() {
+          _documentStatus = 'Summary Complete.';
+          _isTranslating = false;
+        });
+
+        // Display summary in an alert dialog
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Document Summary (AI)'),
+            content: SingleChildScrollView(child: Text(summary)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      print('Summarization Error: $e');
+      if (mounted) {
+        setState(() {
+          _documentStatus = 'Error generating summary.';
+          _isTranslating = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to get summary. Check your API key.'),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    bool aiActionsDisabled =
+        _isProcessing || _isTranslating || _extractedText.isEmpty;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -526,10 +747,8 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
                         if (newValue != null) {
                           setState(() {
                             _selectedTargetLanguageCode = newValue;
-                            // Re-run translation if text is already extracted
                             if (_extractedText.isNotEmpty &&
-                                !_isProcessing &&
-                                !_isTranslating) {
+                                !aiActionsDisabled) {
                               _translateExtractedText(_extractedText);
                             } else {
                               _documentStatus =
@@ -554,10 +773,9 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
                 ),
               ),
               const SizedBox(width: 10),
-              // Translate Button (Used only if language is changed)
+              // Translate Button
               ElevatedButton.icon(
-                onPressed:
-                    (_isProcessing || _isTranslating || _extractedText.isEmpty)
+                onPressed: aiActionsDisabled
                     ? null
                     : () {
                         _translateExtractedText(_extractedText);
@@ -581,6 +799,54 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
                     horizontal: 15,
                   ),
                   backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // --- NEW AI AGENT BUTTONS ---
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // Summarize Button
+              ElevatedButton.icon(
+                onPressed: aiActionsDisabled ? null : _summarizeText,
+                icon: const Icon(Icons.notes),
+                label: const Text('Summarize'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+
+              // Chat with AI (Contextual Chat) Button
+              ElevatedButton.icon(
+                onPressed: aiActionsDisabled
+                    ? null
+                    : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ChatScreen(documentContext: _extractedText),
+                          ),
+                        );
+                      },
+                icon: const Icon(Icons.smart_toy),
+                label: const Text('Chat with AI'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 20,
+                  ),
+                  backgroundColor: Colors.deepPurple,
                   foregroundColor: Colors.white,
                 ),
               ),
@@ -661,6 +927,8 @@ class _MyHomePageState extends State<MyHomePage> {
   String _translatedText = "Translation";
   bool _isTranslating = false;
   final translator = GoogleTranslator();
+  final ChatGPTService _chatGPTService =
+      ChatGPTService(); // NEW: For summarization
 
   // --- Language Selection Variables ---
   final Map<String, String> _languages = {
@@ -673,6 +941,16 @@ class _MyHomePageState extends State<MyHomePage> {
   };
 
   String _selectedTargetLanguageCode = 'vi';
+
+  // Helper function to find the language name from its code
+  String _getLanguageName(String code) {
+    return _languages.entries
+        .firstWhere(
+          (entry) => entry.value == code,
+          orElse: () => const MapEntry('Unknown', ''),
+        )
+        .key;
+  }
 
   // --- Image Picking and Processing Logic ---
 
@@ -748,44 +1026,127 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  // --- Translation Logic ---
+  // --- Translation Logic (WITH DEBUGGING PRINTS) ---
   Future<void> _translateText(String extractedText) async {
+    // 1. Input Validation Check
     if (extractedText.isEmpty ||
         extractedText.contains('Select an image') ||
         extractedText.contains('Could not recognize')) {
       setState(() {
-        _translatedText = "No valid text to translate.";
+        _translatedText = "No valid text to translate (Validation failed).";
       });
+      print("DEBUG: Translation skipped due to invalid input.");
       return;
     }
 
+    // 2. Start Translation State
     setState(() {
       _translatedText =
-          "Translating to ${_languages.entries.firstWhere((e) => e.value == _selectedTargetLanguageCode).key}...";
+          "Translating to ${_getLanguageName(_selectedTargetLanguageCode)}...";
       _isTranslating = true;
     });
 
+    print('DEBUG: Input Text for Translation: $extractedText');
+    print('DEBUG: Target Language Code: $_selectedTargetLanguageCode');
+
     try {
+      // 3. Perform Translation
       var google_translation = await translator.translate(
         extractedText,
         to: _selectedTargetLanguageCode,
       );
 
+      String resultText = google_translation.text;
+
+      print('DEBUG: Translation API Result: $resultText');
+
+      // 4. Update State with Result
       setState(() {
-        _translatedText = google_translation.text;
+        if (resultText.isEmpty) {
+          _translatedText = "Translation failed: API returned empty string.";
+        } else {
+          _translatedText = resultText;
+        }
         _isTranslating = false;
       });
     } catch (e) {
-      print('Translation error: $e');
+      // 5. Handle Network/API Error
+      print('ERROR: Translation error caught: $e');
       setState(() {
-        _translatedText = "Error during translation.";
+        _translatedText =
+            "Error during translation. Check console for details (Network/API issue).";
         _isTranslating = false;
       });
     }
   }
 
+  // --- NEW: Summarization Logic ---
+  Future<void> _summarizeText() async {
+    if (_extractedText.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please perform OCR or upload an image first.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _translatedText =
+          'Requesting summary from AI...'; // Using translation box for status
+      _isTranslating = true;
+    });
+
+    try {
+      final messages = <Map<String, String>>[
+        {
+          'role': 'system',
+          'content':
+              'You are an expert summarization bot. Provide a concise, three-sentence summary of the user\'s input text.',
+        },
+        {'role': 'user', 'content': _extractedText},
+      ];
+
+      final summary = await _chatGPTService.sendChat(messages);
+
+      if (mounted) {
+        setState(() {
+          _translatedText = summary;
+          _isTranslating = false;
+        });
+
+        // Display summary in an alert dialog (more appropriate for a separate action)
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Image Text Summary (AI)'),
+            content: SingleChildScrollView(child: Text(summary)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      print('Summarization Error: $e');
+      if (mounted) {
+        setState(() {
+          _translatedText =
+              'Error generating summary. Check your API key or network.';
+          _isTranslating = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    bool aiActionsDisabled =
+        _isProcessing || _isTranslating || _extractedText.isEmpty;
+
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -960,8 +1321,9 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
               ),
 
-              // Translated Text Display
               const SizedBox(height: 20),
+
+              // Translated Text Display
               const Text(
                 'Translated Text:',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -983,23 +1345,54 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
               ),
 
-              // ===== CHATBOT BUTTON =====
               const SizedBox(height: 30),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ChatScreen()),
-                  );
-                },
-                icon: const Icon(Icons.smart_toy),
-                label: const Text('Chat với AI'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
-                ),
+
+              // --- NEW AI AGENT BUTTONS ---
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Summarize Button
+                  ElevatedButton.icon(
+                    onPressed: aiActionsDisabled ? null : _summarizeText,
+                    icon: const Icon(Icons.notes),
+                    label: const Text('Summarize'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+
+                  // Chat with AI (Contextual Chat) Button
+                  ElevatedButton.icon(
+                    onPressed: aiActionsDisabled
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    ChatScreen(documentContext: _extractedText),
+                              ),
+                            );
+                          },
+                    icon: const Icon(Icons.smart_toy),
+                    label: const Text('Chat with AI'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 20,
+                      ),
+                      backgroundColor: Colors.deepPurple,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
               ),
+              // --- END NEW AI AGENT BUTTONS ---
             ],
           ),
         ),

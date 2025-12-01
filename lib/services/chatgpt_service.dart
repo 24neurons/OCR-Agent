@@ -6,16 +6,16 @@ import 'package:http/http.dart' as http;
 import 'secret_config.dart';
 
 class ChatGPTService {
-  // Lấy key từ secret_config
   final String _apiKey = openAIApiKey;
 
-  /// Gửi danh sách messages tới OpenAI và trả về câu trả lời dạng String
-  /// messages: [{ 'role': 'user' | 'assistant' | 'system', 'content': '...' }, ...]
-  Future<String> sendChat(List<Map<String, String>> messages) async {
+  /// Gửi danh sách messages tới OpenAI. Messages now support List<Map<String, dynamic>>
+  /// messages: [{ 'role': 'user' | 'assistant' | 'system', 'content': String | List<Map<String, dynamic>> }, ...]
+  Future<String> sendChat(List<Map<String, dynamic>> messages) async {
     final url = Uri.parse('https://api.openai.com/v1/chat/completions');
 
     final body = {
-      'model': 'gpt-4o-mini', // bạn có thể đổi model nếu muốn
+      // NOTE: gpt-4o-mini supports vision inputs
+      'model': 'gpt-4o-mini',
       'messages': messages,
       'temperature': 0.7,
     };
@@ -30,9 +30,7 @@ class ChatGPTService {
     );
 
     if (response.statusCode != 200) {
-      throw Exception(
-        'OpenAI error ${response.statusCode}: ${response.body}',
-      );
+      throw Exception('OpenAI error ${response.statusCode}: ${response.body}');
     }
 
     final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -48,7 +46,7 @@ class ChatGPTService {
       return content;
     }
 
-    // fallback nếu OpenAI trả về format hơi khác
+    // Fallback for non-string content
     return content.toString();
   }
 }
