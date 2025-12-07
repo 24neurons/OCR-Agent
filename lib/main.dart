@@ -527,10 +527,14 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
       for (final paragraph in sourceParagraphs) {
         final translation = await translator.translate(
           paragraph,
+
           to: _selectedTargetLanguageCode,
         );
         translatedParagraphs.add(translation.text);
       }
+      String Bon = "Tôi là Bon. Tôi là một con chó";
+      final phan_dich = await translator.translate(Bon, from: 'auto', to: 'en');
+      print(phan_dich);
 
       await _createAndSaveTranslatedPdf(
         translatedParagraphs,
