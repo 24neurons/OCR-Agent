@@ -1144,7 +1144,7 @@ class WebsitesTabContent extends StatelessWidget {
 }
 
 // =========================================================================
-// MyHomePage (Images tab: OCR, Translation, File Picker)
+// MyHomePage (Images tab: Simplified - Only 3 buttons)
 // =========================================================================
 
 class MyHomePage extends StatefulWidget {
@@ -1158,14 +1158,227 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  File? _imageFile;
-  String _extractedText = 'Select an image or take a picture to begin OCR.';
   bool _isProcessing = false;
+
+  // --- Image Picking Logic ---
+
+  Future<void> _pickImageFromGallery() async {
+    final pickedFile = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
+    if (pickedFile != null) {
+      await _processAndNavigate(File(pickedFile.path));
+    }
+  }
+
+  // Function for System File Picker (restricted to images)
+  Future<void> _pickFileFromSystem() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'tiff'],
+      allowMultiple: false,
+    );
+
+    if (result != null && result.files.single.path != null) {
+      final pickedFile = File(result.files.single.path!);
+      await _processAndNavigate(pickedFile);
+    }
+  }
+
+  Future<void> _takePicture() async {
+    // Check if any cameras are available
+    if (widget.cameras.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No cameras available on this device.')),
+      );
+      return;
+    }
+
+    // Navigate to the CameraScreen to capture the image
+    final String? imagePath = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (context) => CameraScreen(camera: widget.cameras.first),
+      ),
+    );
+
+    // If an image path is returned, process it
+    if (imagePath != null) {
+      await _processAndNavigate(File(imagePath));
+    }
+  }
+
+  Future<void> _processAndNavigate(File image) async {
+    setState(() {
+      _isProcessing = true;
+    });
+
+    // Perform OCR
+    final inputImage = InputImage.fromFilePath(image.path);
+    final textRecognizer = TextRecognizer();
+    final RecognizedText recognizedText = await textRecognizer.processImage(
+      inputImage,
+    );
+    textRecognizer.close();
+
+    String extractedText = recognizedText.text.isEmpty
+        ? 'Could not recognize any text.'
+        : recognizedText.text.replaceAll('\n', ' ');
+
+    setState(() {
+      _isProcessing = false;
+    });
+
+    // Navigate to ImageResultScreen
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ImageResultScreen(
+            imageFile: image,
+            extractedText: extractedText,
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              // Icon and Title
+              Icon(
+                Icons.image_search,
+                size: 100,
+                color: colorScheme.primary.withValues(alpha: 0.7),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Image OCR Scanner',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Select an image or take a picture to extract text',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 50),
+
+              // Processing Indicator
+              if (_isProcessing)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 20),
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 10),
+                      Text('Processing image...'),
+                    ],
+                  ),
+                ),
+
+              // Button 1: Gallery
+              ElevatedButton.icon(
+                onPressed: _isProcessing ? null : _pickImageFromGallery,
+                icon: const Icon(Icons.photo_library, size: 24),
+                label: const Text(
+                  'Select from Gallery',
+                  style: TextStyle(fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Button 2: Camera
+              ElevatedButton.icon(
+                onPressed: _isProcessing ? null : _takePicture,
+                icon: const Icon(Icons.camera_alt, size: 24),
+                label: const Text(
+                  'Take Picture',
+                  style: TextStyle(fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Button 3: Upload File (System Picker for Images)
+              ElevatedButton.icon(
+                onPressed: _isProcessing ? null : _pickFileFromSystem,
+                icon: const Icon(Icons.upload_file, size: 24),
+                label: const Text(
+                  'Upload Image File',
+                  style: TextStyle(fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// =========================================================================
+// ImageResultScreen (Shows OCR results, translation, AI actions)
+// =========================================================================
+
+class ImageResultScreen extends StatefulWidget {
+  final File imageFile;
+  final String extractedText;
+
+  const ImageResultScreen({
+    super.key,
+    required this.imageFile,
+    required this.extractedText,
+  });
+
+  @override
+  State<ImageResultScreen> createState() => _ImageResultScreenState();
+}
+
+class _ImageResultScreenState extends State<ImageResultScreen> {
+  late String _extractedText;
   String _translatedText = "Translation";
   bool _isTranslating = false;
   final translator = GoogleTranslator();
-  final ChatGPTService _chatGPTService =
-      ChatGPTService(); // NEW: For summarization
+  final ChatGPTService _chatGPTService = ChatGPTService();
 
   // --- Language Selection Variables ---
   final Map<String, String> _languages = {
@@ -1179,6 +1392,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
   String _selectedTargetLanguageCode = 'vi';
 
+  @override
+  void initState() {
+    super.initState();
+    _extractedText = widget.extractedText;
+  }
+
   // Helper function to find the language name from its code
   String _getLanguageName(String code) {
     return _languages.entries
@@ -1189,115 +1408,30 @@ class _MyHomePageState extends State<MyHomePage> {
         .key;
   }
 
-  // --- Image Picking and Processing Logic ---
-
-  Future<void> _pickImageFromGallery() async {
-    final pickedFile = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-    );
-    if (pickedFile != null) {
-      await _processImage(File(pickedFile.path));
-    }
-  }
-
-  // Function for System File Picker (restricted to images)
-  Future<void> _pickFileFromSystem() async {
-    final result = await FilePicker.platform.pickFiles(
-      // CRITICAL: We restrict to image files for OCR functionality
-      type: FileType.custom,
-      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'heic', 'tiff'],
-      allowMultiple: false,
-    );
-
-    if (result != null && result.files.single.path != null) {
-      final pickedFile = File(result.files.single.path!);
-      await _processImage(pickedFile);
-    }
-  }
-
-  Future<void> _takePicture() async {
-    // Check if any cameras are available
-    if (widget.cameras.isEmpty) {
-      setState(() {
-        _extractedText = 'Error: No cameras available on this device.';
-      });
-      return;
-    }
-
-    // Navigate to the CameraScreen to capture the image
-    final String? imagePath = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (context) => CameraScreen(camera: widget.cameras.first),
-      ),
-    );
-
-    // If an image path is returned, process it
-    if (imagePath != null) {
-      await _processImage(File(imagePath));
-    }
-  }
-
-  Future<void> _processImage(File image) async {
-    setState(() {
-      _imageFile = image;
-      _extractedText = 'Processing image...';
-      _isProcessing = true;
-      _translatedText = "Translation"; // Reset translation
-    });
-
-    final inputImage = InputImage.fromFilePath(image.path);
-    final textRecognizer = TextRecognizer();
-    final RecognizedText recognizedText = await textRecognizer.processImage(
-      inputImage,
-    );
-    textRecognizer.close();
-
-    setState(() {
-      _extractedText = recognizedText.text.isEmpty
-          ? 'Could not recognize any text.'
-          : recognizedText.text;
-      print("OCR Raw Output: $_extractedText");
-      _extractedText = _extractedText.replaceAll('\n', ' ');
-      print("OCR Processed Output: $_extractedText");
-      _isProcessing = false;
-    });
-  }
-
-  // --- Translation Logic (WITH DEBUGGING PRINTS) ---
+  // --- Translation Logic ---
   Future<void> _translateText(String extractedText) async {
-    // 1. Input Validation Check
     if (extractedText.isEmpty ||
-        extractedText.contains('Select an image') ||
         extractedText.contains('Could not recognize')) {
       setState(() {
-        _translatedText = "No valid text to translate (Validation failed).";
+        _translatedText = "No valid text to translate.";
       });
-      print("DEBUG: Translation skipped due to invalid input.");
       return;
     }
 
-    // 2. Start Translation State
     setState(() {
       _translatedText =
           "Translating to ${_getLanguageName(_selectedTargetLanguageCode)}...";
       _isTranslating = true;
     });
 
-    print('DEBUG: Input Text for Translation: $extractedText');
-    print('DEBUG: Target Language Code: $_selectedTargetLanguageCode');
-
     try {
-      // 3. Perform Translation
-      var google_translation = await translator.translate(
+      var googleTranslation = await translator.translate(
         extractedText,
         to: _selectedTargetLanguageCode,
       );
 
-      String resultText = google_translation.text;
+      String resultText = googleTranslation.text;
 
-      print('DEBUG: Translation API Result: $resultText');
-
-      // 4. Update State with Result
       setState(() {
         if (resultText.isEmpty) {
           _translatedText = "Translation failed: API returned empty string.";
@@ -1307,30 +1441,25 @@ class _MyHomePageState extends State<MyHomePage> {
         _isTranslating = false;
       });
     } catch (e) {
-      // 5. Handle Network/API Error
       print('ERROR: Translation error caught: $e');
       setState(() {
-        _translatedText =
-            "Error during translation. Check console for details (Network/API issue).";
+        _translatedText = "Error during translation. Please try again.";
         _isTranslating = false;
       });
     }
   }
 
-  // --- NEW: Summarization Logic ---
+  // --- Summarization Logic ---
   Future<void> _summarizeText() async {
-    if (_extractedText.isEmpty) {
+    if (_extractedText.isEmpty || _extractedText.contains('Could not recognize')) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please perform OCR or upload an image first.'),
-        ),
+        const SnackBar(content: Text('No valid text to summarize.')),
       );
       return;
     }
 
     setState(() {
-      _translatedText =
-          'Requesting summary from AI...'; // Using translation box for status
+      _translatedText = 'Requesting summary from AI...';
       _isTranslating = true;
     });
 
@@ -1352,7 +1481,6 @@ class _MyHomePageState extends State<MyHomePage> {
           _isTranslating = false;
         });
 
-        // Display summary in an alert dialog (more appropriate for a separate action)
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -1371,8 +1499,7 @@ class _MyHomePageState extends State<MyHomePage> {
       print('Summarization Error: $e');
       if (mounted) {
         setState(() {
-          _translatedText =
-              'Error generating summary. Check your API key or network.';
+          _translatedText = 'Error generating summary. Check your API key.';
           _isTranslating = false;
         });
       }
@@ -1381,257 +1508,213 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    bool aiActionsDisabled =
-        _isProcessing || _isTranslating || _extractedText.isEmpty;
+    bool aiActionsDisabled = _isTranslating ||
+        _extractedText.isEmpty ||
+        _extractedText.contains('Could not recognize');
 
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              // Image Display
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                height: 200,
-                child: _imageFile == null
-                    ? Center(
-                        child: Text(
-                          'No image selected.',
-                          style: TextStyle(color: Colors.grey[600]),
+      appBar: AppBar(
+        title: const Text('OCR Result'),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            // Image Display
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              height: 200,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.file(widget.imageFile, fit: BoxFit.cover),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Language Selector and Translate Button in a Row
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        isExpanded: true,
+                        value: _selectedTargetLanguageCode,
+                        icon: const Icon(Icons.arrow_drop_down),
+                        elevation: 16,
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
                         ),
-                      )
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.file(_imageFile!, fit: BoxFit.cover),
-                      ),
-              ),
-              const SizedBox(height: 30),
-
-              // Button 1: Gallery
-              ElevatedButton.icon(
-                onPressed: _isProcessing ? null : _pickImageFromGallery,
-                icon: const Icon(Icons.photo_library),
-                label: const Text('Select from Gallery'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                ),
-              ),
-              const SizedBox(height: 15),
-
-              // Button 2: Camera
-              ElevatedButton.icon(
-                onPressed: _isProcessing ? null : _takePicture,
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('Take Picture'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-
-              const SizedBox(height: 15),
-
-              // NEW BUTTON: Upload File (System Picker for Images)
-              ElevatedButton.icon(
-                onPressed: _isProcessing ? null : _pickFileFromSystem,
-                icon: const Icon(Icons.upload_file),
-                label: const Text('Upload Image File (System Picker)'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 15),
-
-              // Language Selector and Translate Button in a Row
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          isExpanded: true,
-                          value: _selectedTargetLanguageCode,
-                          icon: const Icon(Icons.arrow_drop_down),
-                          elevation: 16,
-                          style: TextStyle(
-                            color: Theme.of(context).primaryColor,
-                          ),
-                          onChanged: (String? newValue) {
-                            if (newValue != null) {
-                              setState(() {
-                                _selectedTargetLanguageCode = newValue;
-                                _translatedText = "Translation target changed.";
-                              });
-                            }
-                          },
-                          items: _languages.entries
-                              .map<DropdownMenuItem<String>>((
-                                MapEntry<String, String> entry,
-                              ) {
-                                return DropdownMenuItem<String>(
-                                  value: entry.value,
-                                  child: Text(
-                                    'Translate to: ${entry.key}',
-                                    style: const TextStyle(color: Colors.black),
-                                  ),
-                                );
-                              })
-                              .toList(),
-                        ),
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            setState(() {
+                              _selectedTargetLanguageCode = newValue;
+                              _translatedText = "Translation target changed.";
+                            });
+                          }
+                        },
+                        items: _languages.entries
+                            .map<DropdownMenuItem<String>>((
+                              MapEntry<String, String> entry,
+                            ) {
+                              return DropdownMenuItem<String>(
+                                value: entry.value,
+                                child: Text(
+                                  'Translate to: ${entry.key}',
+                                  style: const TextStyle(color: Colors.black),
+                                ),
+                              );
+                            })
+                            .toList(),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  // Button 3: Translate
-                  ElevatedButton.icon(
-                    onPressed: _isProcessing || _isTranslating
-                        ? null
-                        : () {
-                            _translateText(_extractedText);
-                          },
-                    icon: _isTranslating
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
+                ),
+                const SizedBox(width: 10),
+                // Translate Button
+                ElevatedButton.icon(
+                  onPressed: _isTranslating
+                      ? null
+                      : () {
+                          _translateText(_extractedText);
+                        },
+                  icon: _isTranslating
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
                             ),
-                          )
-                        : const Icon(Icons.translate),
-                    label: Text(
-                      _isTranslating ? 'Translating...' : 'Translate',
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 15,
-                        horizontal: 15,
-                      ),
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                    ),
+                          ),
+                        )
+                      : const Icon(Icons.translate),
+                  label: Text(
+                    _isTranslating ? 'Translating...' : 'Translate',
                   ),
-                ],
-              ),
-
-              const SizedBox(height: 40),
-
-              // Extracted Text Display
-              const Text(
-                'Extracted Text:',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 15,
+                      horizontal: 15,
+                    ),
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
                 ),
-                constraints: const BoxConstraints(minHeight: 100),
-                child: _isProcessing
-                    ? const Center(child: CircularProgressIndicator())
-                    : SelectableText(
-                        _extractedText,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-              ),
+              ],
+            ),
 
-              const SizedBox(height: 20),
+            const SizedBox(height: 30),
 
-              // Translated Text Display
-              const Text(
-                'Translated Text:',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            // Extracted Text Display
+            const Text(
+              'Extracted Text:',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
               ),
-              const SizedBox(height: 10),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
+              constraints: const BoxConstraints(minHeight: 100),
+              child: SelectableText(
+                _extractedText,
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Translated Text Display
+            const Text(
+              'Translated Text:',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              constraints: const BoxConstraints(minHeight: 100),
+              child: _isTranslating
+                  ? const Center(child: CircularProgressIndicator())
+                  : SelectableText(
+                      _translatedText,
+                      style: const TextStyle(fontSize: 16),
+                    ),
+            ),
+
+            const SizedBox(height: 30),
+
+            // --- AI AGENT BUTTONS ---
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Summarize Button
+                ElevatedButton.icon(
+                  onPressed: aiActionsDisabled ? null : _summarizeText,
+                  icon: const Icon(Icons.notes),
+                  label: const Text('Summarize'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                  ),
                 ),
-                constraints: const BoxConstraints(minHeight: 100),
-                child: _isTranslating
-                    ? const Center(child: CircularProgressIndicator())
-                    : SelectableText(
-                        _translatedText,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-              ),
 
-              const SizedBox(height: 30),
-
-              // --- NEW AI AGENT BUTTONS ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Summarize Button
-                  ElevatedButton.icon(
-                    onPressed: aiActionsDisabled ? null : _summarizeText,
-                    icon: const Icon(Icons.notes),
-                    label: const Text('Summarize'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
+                // Chat with AI (Contextual Chat) Button
+                ElevatedButton.icon(
+                  onPressed: aiActionsDisabled
+                      ? null
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ChatScreen(documentContext: _extractedText),
+                            ),
+                          );
+                        },
+                  icon: const Icon(Icons.smart_toy),
+                  label: const Text('Chat with AI'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 20,
                     ),
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
                   ),
-
-                  // Chat with AI (Contextual Chat) Button
-                  ElevatedButton.icon(
-                    onPressed: aiActionsDisabled
-                        ? null
-                        : () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    ChatScreen(documentContext: _extractedText),
-                              ),
-                            );
-                          },
-                    icon: const Icon(Icons.smart_toy),
-                    label: const Text('Chat with AI'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 20,
-                      ),
-                      backgroundColor: Colors.deepPurple,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              // --- END NEW AI AGENT BUTTONS ---
-            ],
-          ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+          ],
         ),
       ),
     );
