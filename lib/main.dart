@@ -78,13 +78,33 @@ class MainTranslatorScreen extends StatefulWidget {
 class _MainTranslatorScreenState extends State<MainTranslatorScreen> {
   int _selectedIndex = 0;
 
+  // Tab names for AppBar
+  final List<String> _tabNames = [
+    'Text Translation',
+    'Image OCR',
+    'Document Translation',
+    'Website Translation',
+  ];
+
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Google Translate Clone'),
-        backgroundColor: Colors.blue.shade700,
-        foregroundColor: Colors.white,
+        title: Text(
+          _tabNames[_selectedIndex],
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onPrimary,
+          ),
+        ),
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        elevation: 0,
+        centerTitle: false,
+        scrolledUnderElevation: 0,
       ),
       body: IndexedStack(
         index: _selectedIndex,
@@ -196,6 +216,8 @@ class _TextTabContentState extends State<TextTabContent> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     // Helper to get the display name for the target language
     String getTargetName() {
       return _languages.entries
@@ -220,7 +242,7 @@ class _TextTabContentState extends State<TextTabContent> {
                 // ===== CARD WITH LANGUAGE SELECTORS, DIVIDER, AND INPUT BOX =====
                 Card(
                   elevation: 0,
-                  color: Colors.white,
+                  color: colorScheme.surface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide.none,
@@ -233,7 +255,7 @@ class _TextTabContentState extends State<TextTabContent> {
                         // Language Selectors (Top Row)
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: colorScheme.surface,
                             borderRadius: const BorderRadius.only(
                               topLeft: Radius.circular(16),
                               topRight: Radius.circular(16),
@@ -243,13 +265,13 @@ class _TextTabContentState extends State<TextTabContent> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              // Source Language Dropdown (Modern Style)
+                              // Source Language Dropdown (Material 3 Style)
                               Flexible(
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: colorScheme.surfaceContainerHighest,
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                                    border: Border.all(color: colorScheme.outline, width: 1),
                                   ),
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
@@ -257,16 +279,16 @@ class _TextTabContentState extends State<TextTabContent> {
                                       value: _sourceLanguageCode,
                                       isExpanded: true,
                                       underline: const SizedBox(),
-                                      icon: Icon(Icons.language, size: 20, color: Colors.blue.shade600),
+                                      icon: Icon(Icons.expand_more, size: 20, color: colorScheme.onSurfaceVariant),
                                       items: _languages.entries.map((entry) {
                                         return DropdownMenuItem<String>(
                                           value: entry.value,
                                           child: Text(
                                             entry.key,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w600,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w500,
                                               fontSize: 14,
-                                              color: Colors.black87,
+                                              color: colorScheme.onSurface,
                                             ),
                                           ),
                                         );
@@ -283,16 +305,16 @@ class _TextTabContentState extends State<TextTabContent> {
 
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                                child: Icon(Icons.arrow_forward_ios, size: 18, color: Colors.blue.shade400),
+                                child: Icon(Icons.arrow_right_alt, size: 18, color: colorScheme.primary),
                               ),
 
-                              // Target Language Dropdown (Modern Style)
+                              // Target Language Dropdown (Material 3 Style)
                               Flexible(
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+                                    color: colorScheme.primary.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: Colors.blue.shade200, width: 1.5),
+                                    border: Border.all(color: colorScheme.primary, width: 1.5),
                                   ),
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
@@ -300,7 +322,7 @@ class _TextTabContentState extends State<TextTabContent> {
                                       value: _targetLanguageCode,
                                       isExpanded: true,
                                       underline: const SizedBox(),
-                                      icon: Icon(Icons.language, size: 20, color: Colors.blue.shade600),
+                                      icon: Icon(Icons.expand_more, size: 20, color: colorScheme.primary),
                                       items: _languages.entries
                                           .where((e) => e.key != 'Detect language')
                                           .map((entry) {
@@ -308,10 +330,10 @@ class _TextTabContentState extends State<TextTabContent> {
                                               value: entry.value,
                                               child: Text(
                                                 entry.key,
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   fontWeight: FontWeight.w600,
                                                   fontSize: 14,
-                                                  color: Colors.black87,
+                                                  color: colorScheme.primary,
                                                 ),
                                               ),
                                             );
@@ -331,7 +353,7 @@ class _TextTabContentState extends State<TextTabContent> {
                         ),
 
                         // Divider
-                        Divider(color: Colors.grey.shade300, height: 1, thickness: 1),
+                        // Divider(color: colorScheme.outlineVariant, height: 1, thickness: 1),
 
                         // Input Box with SingleChildScrollView
                         Padding(
@@ -340,19 +362,23 @@ class _TextTabContentState extends State<TextTabContent> {
                             height: 200,
                             child: Container(
                               decoration: BoxDecoration(
-                                border: Border.all(color: Colors.transparent),
+                                border: Border.all(color: colorScheme.outlineVariant, width: 1),
                                 borderRadius: BorderRadius.circular(10),
-                                color: Colors.white,
+                                color: colorScheme.surface,
                               ),
                               padding: const EdgeInsets.all(12.0),
                               child: SingleChildScrollView(
                                 child: TextField(
                                   controller: _inputController,
                                   maxLines: null,
-                                  style: const TextStyle(fontSize: 16),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: colorScheme.onSurface,
+                                    height: 1.5,
+                                  ),
                                   decoration: InputDecoration(
                                     hintText: 'Nhập văn bản để dịch...',
-                                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                                    hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                                     border: InputBorder.none,
                                     contentPadding: EdgeInsets.zero,
                                   ),
@@ -366,84 +392,86 @@ class _TextTabContentState extends State<TextTabContent> {
                   ),
                 ),
 
-                const SizedBox(height: 6),
+                const SizedBox(height: 16),
 
                 // ===== BUTTON ROW: PASTE, MICROPHONE, TRANSLATE =====
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    // Left Side: Paste and Microphone Buttons
-                    Flexible(
-                      child: Row(
-                        children: [
-                          // Paste Button
-                          Flexible(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                // TODO: Implement paste functionality
-                              },
-                              icon: const Icon(Icons.content_paste),
-                              label: const Text('Paste'),
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                backgroundColor: Colors.grey.shade200,
-                                foregroundColor: Colors.black54,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(width: 8),
-
-                          // Microphone Button (Icon only)
-                          IconButton(
-                            onPressed: () {
-                              // TODO: Implement microphone functionality
-                            },
-                            icon: const Icon(Icons.mic),
-                            style: IconButton.styleFrom(
-                              backgroundColor: Colors.grey.shade200,
-                              foregroundColor: Colors.black54,
-                            ),
-                          ),
-                        ],
+                    // Paste Button (Material 3 OutlinedButton)
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        // TODO: Implement paste functionality
+                      },
+                      icon: Icon(Icons.content_paste, size: 20, color: colorScheme.onSurfaceVariant),
+                      label: Text(
+                        'Paste',
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        side: BorderSide(color: colorScheme.outline, width: 1),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
                       ),
                     ),
 
-                    // Right Side: Translation Button
-                    Flexible(
-                      child: ElevatedButton.icon(
-                        onPressed: _isTranslating || _inputController.text.isEmpty
-                            ? null
-                            : _translateText,
-                        icon: _isTranslating
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                ),
-                              )
-                            : const Icon(Icons.translate, size: 20),
-                        label: Text(
-                          _isTranslating ? 'Translating...' : getTargetName(),
-                          style: const TextStyle(fontSize: 14),
+                    // Microphone Button (Material 3 Style - Circular)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: colorScheme.surfaceContainerHighest,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: colorScheme.outline, width: 1),
+                      ),
+                      child: IconButton(
+                        onPressed: () {
+                          // TODO: Implement microphone functionality
+                        },
+                        icon: Icon(Icons.mic, size: 24, color: colorScheme.onSurfaceVariant),
+                        constraints: const BoxConstraints(
+                          minWidth: 60,
+                          minHeight: 60,
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade700,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
+                        padding: const EdgeInsets.all(0),
+                      ),
+                    ),
+
+                    // Translation Button (Material 3 FilledButton)
+                    FilledButton.icon(
+                      onPressed: _isTranslating || _inputController.text.isEmpty
+                          ? null
+                          : _translateText,
+                      icon: _isTranslating
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  colorScheme.onPrimary,
+                                ),
+                              ),
+                            )
+                          : Icon(Icons.translate, size: 20),
+                      label: Text(
+                        _isTranslating ? 'Translating...' : getTargetName(),
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
                         ),
                       ),
                     ),
@@ -455,7 +483,7 @@ class _TextTabContentState extends State<TextTabContent> {
                 // ===== OUTPUT BOX AT BOTTOM (MATCHING INPUT CARD STRUCTURE) =====
                 Card(
                   elevation: 0,
-                  color: Colors.white,
+                  color: colorScheme.surface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                     side: BorderSide.none,
@@ -468,7 +496,7 @@ class _TextTabContentState extends State<TextTabContent> {
                         // Output Header (matching input card header height)
                         Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: colorScheme.surface,
                             borderRadius: const BorderRadius.only(
                               topLeft: Radius.circular(16),
                               topRight: Radius.circular(16),
@@ -483,16 +511,16 @@ class _TextTabContentState extends State<TextTabContent> {
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
-                                  color: Colors.black87,
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
-                              Icon(Icons.check_circle, size: 20, color: Colors.green.shade600),
+                              Icon(Icons.check_circle, size: 20, color: colorScheme.primary),
                             ],
                           ),
                         ),
 
                         // Divider (matching input card divider)
-                        Divider(color: Colors.grey.shade300, height: 1, thickness: 1),
+                        Divider(color: colorScheme.outlineVariant, height: 1, thickness: 1),
 
                         // Output Text Box (matching input box size)
                         Padding(
@@ -501,19 +529,23 @@ class _TextTabContentState extends State<TextTabContent> {
                             height: 200,
                             child: Container(
                               decoration: BoxDecoration(
-                                border: Border.all(color: Colors.transparent),
+                                border: Border.all(color: colorScheme.outlineVariant, width: 1),
                                 borderRadius: BorderRadius.circular(10),
-                                color: Colors.white,
+                                color: colorScheme.surface,
                               ),
                               padding: const EdgeInsets.all(12.0),
                               child: _isTranslating
-                                  ? const Center(child: CircularProgressIndicator())
+                                  ? Center(
+                                      child: CircularProgressIndicator(
+                                        color: colorScheme.primary,
+                                      ),
+                                    )
                                   : SingleChildScrollView(
                                       child: SelectableText(
                                         _translatedText,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 16,
-                                          color: Colors.black87,
+                                          color: colorScheme.onSurface,
                                           height: 1.5,
                                         ),
                                       ),
