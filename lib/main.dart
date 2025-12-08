@@ -233,13 +233,9 @@ class _TextTabContentState extends State<TextTabContent> {
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: MediaQuery.of(context).size.height - 32,
-            ),
-            child: Column(
-              children: [
-                // ===== CARD WITH LANGUAGE SELECTORS, DIVIDER, AND INPUT BOX =====
+          child: Column(
+            children: [
+              // ...existing code...
                 Card(
                   elevation: 0,
                   color: colorScheme.surface,
@@ -305,7 +301,7 @@ class _TextTabContentState extends State<TextTabContent> {
 
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                                child: Icon(Icons.arrow_right_alt, size: 18, color: colorScheme.primary),
+                                child: Icon(Icons.arrow_forward_ios, size: 18, color: colorScheme.primary),
                               ),
 
                               // Target Language Dropdown (Material 3 Style)
@@ -480,80 +476,36 @@ class _TextTabContentState extends State<TextTabContent> {
 
                 const SizedBox(height: 16),
 
-                // ===== OUTPUT BOX AT BOTTOM (MATCHING INPUT CARD STRUCTURE) =====
-                Card(
-                  elevation: 0,
-                  color: colorScheme.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide.none,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Output Header (matching input card header height)
-                        Container(
-                          decoration: BoxDecoration(
-                            color: colorScheme.surface,
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(16),
-                              topRight: Radius.circular(16),
-                            ),
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Translation Result',
+                // ===== OUTPUT TEXT BOX (OUTSIDE CARD) =====
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 180,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: colorScheme.outlineVariant, width: 1),
+                        borderRadius: BorderRadius.circular(10),
+                        color: colorScheme.surface,
+                      ),
+                      padding: const EdgeInsets.all(14.0),
+                      child: _isTranslating
+                          ? Center(
+                              child: CircularProgressIndicator(
+                                color: colorScheme.primary,
+                              ),
+                            )
+                          : SingleChildScrollView(
+                              child: SelectableText(
+                                _translatedText,
+                                textAlign: TextAlign.left,
                                 style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                                  fontSize: 16,
                                   color: colorScheme.onSurface,
+                                  height: 1.5,
                                 ),
                               ),
-                              Icon(Icons.check_circle, size: 20, color: colorScheme.primary),
-                            ],
-                          ),
-                        ),
-
-                        // Divider (matching input card divider)
-                        Divider(color: colorScheme.outlineVariant, height: 1, thickness: 1),
-
-                        // Output Text Box (matching input box size)
-                        Padding(
-                          padding: const EdgeInsets.all(14.0),
-                          child: SizedBox(
-                            height: 200,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(color: colorScheme.outlineVariant, width: 1),
-                                borderRadius: BorderRadius.circular(10),
-                                color: colorScheme.surface,
-                              ),
-                              padding: const EdgeInsets.all(12.0),
-                              child: _isTranslating
-                                  ? Center(
-                                      child: CircularProgressIndicator(
-                                        color: colorScheme.primary,
-                                      ),
-                                    )
-                                  : SingleChildScrollView(
-                                      child: SelectableText(
-                                        _translatedText,
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          color: colorScheme.onSurface,
-                                          height: 1.5,
-                                        ),
-                                      ),
-                                    ),
                             ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -561,7 +513,7 @@ class _TextTabContentState extends State<TextTabContent> {
             ),
           ),
         ),
-      ),
+
     );
   }
 }
