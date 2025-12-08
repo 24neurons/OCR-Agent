@@ -133,10 +133,7 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen> {
             icon: const Icon(Icons.text_fields),
             label: 'Text',
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.image),
-            label: 'Images',
-          ),
+          NavigationDestination(icon: const Icon(Icons.image), label: 'Images'),
           NavigationDestination(
             icon: const Icon(Icons.description),
             label: 'Documents',
@@ -197,9 +194,9 @@ class _TextTabContentState extends State<TextTabContent> {
     bool available = await _speechToText.initialize(
       onError: (error) {
         print('Speech to text error: $error');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${error.errorMsg}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${error.errorMsg}')));
       },
       onStatus: (status) {
         print('Speech to text status: $status');
@@ -231,7 +228,8 @@ class _TextTabContentState extends State<TextTabContent> {
           setState(() {
             _recognizedText = result.recognizedWords;
             if (result.finalResult) {
-              _inputController.text += (_inputController.text.isEmpty ? '' : ' ') + _recognizedText;
+              _inputController.text +=
+                  (_inputController.text.isEmpty ? '' : ' ') + _recognizedText;
               _isListening = false;
               _recognizedText = '';
             }
@@ -264,9 +262,9 @@ class _TextTabContentState extends State<TextTabContent> {
       }
     } catch (e) {
       print('Paste error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to paste text')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to paste text')));
     }
   }
 
@@ -321,291 +319,336 @@ class _TextTabContentState extends State<TextTabContent> {
           child: Column(
             children: [
               // ...existing code...
-                Card(
-                  elevation: 0,
-                  color: colorScheme.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide.none,
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(0),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Language Selectors (Top Row)
-                        Container(
-                          decoration: BoxDecoration(
-                            color: colorScheme.surface,
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(16),
-                              topRight: Radius.circular(16),
-                            ),
+              Card(
+                elevation: 0,
+                color: colorScheme.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide.none,
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Language Selectors (Top Row)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: colorScheme.surface,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(16),
+                            topRight: Radius.circular(16),
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              // Source Language Dropdown (Material 3 Style)
-                              Flexible(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.surfaceContainerHighest,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: colorScheme.outline, width: 1),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 14.0,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Source Language Dropdown (Material 3 Style)
+                            Flexible(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHighest,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: colorScheme.outline,
+                                    width: 1,
                                   ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-                                    child: DropdownButton<String>(
-                                      value: _sourceLanguageCode,
-                                      isExpanded: true,
-                                      underline: const SizedBox(),
-                                      icon: Icon(Icons.expand_more, size: 20, color: colorScheme.onSurfaceVariant),
-                                      items: _languages.entries.map((entry) {
-                                        return DropdownMenuItem<String>(
-                                          value: entry.value,
-                                          child: Text(
-                                            entry.key,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 14,
-                                              color: colorScheme.onSurface,
-                                            ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12.0,
+                                    vertical: 4.0,
+                                  ),
+                                  child: DropdownButton<String>(
+                                    value: _sourceLanguageCode,
+                                    isExpanded: true,
+                                    underline: const SizedBox(),
+                                    icon: Icon(
+                                      Icons.expand_more,
+                                      size: 20,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                    items: _languages.entries.map((entry) {
+                                      return DropdownMenuItem<String>(
+                                        value: entry.value,
+                                        child: Text(
+                                          entry.key,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 14,
+                                            color: colorScheme.onSurface,
                                           ),
-                                        );
-                                      }).toList(),
-                                      onChanged: (String? newValue) {
-                                        setState(() {
-                                          _sourceLanguageCode = newValue!;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                                child: Icon(Icons.arrow_forward_ios, size: 18, color: colorScheme.primary),
-                              ),
-
-                              // Target Language Dropdown (Material 3 Style)
-                              Flexible(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.primary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: colorScheme.primary, width: 1.5),
-                                  ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-                                    child: DropdownButton<String>(
-                                      value: _targetLanguageCode,
-                                      isExpanded: true,
-                                      underline: const SizedBox(),
-                                      icon: Icon(Icons.expand_more, size: 20, color: colorScheme.primary),
-                                      items: _languages.entries
-                                          .where((e) => e.key != 'Detect language')
-                                          .map((entry) {
-                                            return DropdownMenuItem<String>(
-                                              value: entry.value,
-                                              child: Text(
-                                                entry.key,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 14,
-                                                  color: colorScheme.primary,
-                                                ),
-                                              ),
-                                            );
-                                          })
-                                          .toList(),
-                                      onChanged: (String? newValue) {
-                                        setState(() {
-                                          _targetLanguageCode = newValue!;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Divider
-                        // Divider(color: colorScheme.outlineVariant, height: 1, thickness: 1),
-
-                        // Input Box with SingleChildScrollView
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: SizedBox(
-                            height: 180,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                border: Border.all(color: colorScheme.outlineVariant, width: 1),
-                                borderRadius: BorderRadius.circular(10),
-                                color: colorScheme.surface,
-                              ),
-                              padding: const EdgeInsets.all(12.0),
-                              child: SingleChildScrollView(
-                                child: TextField(
-                                  controller: _inputController,
-                                  maxLines: null,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: colorScheme.onSurface,
-                                    height: 1.5,
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText: 'Nhập văn bản để dịch...',
-                                    hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
-                                    border: InputBorder.none,
-                                    contentPadding: EdgeInsets.zero,
-                                    isDense: true,
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (String? newValue) {
+                                      setState(() {
+                                        _sourceLanguageCode = newValue!;
+                                      });
+                                    },
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
 
-                const SizedBox(height: 16),
-
-                // ===== BUTTON ROW: PASTE, MICROPHONE, TRANSLATE =====
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // Paste Button (Material 3 OutlinedButton)
-                    OutlinedButton.icon(
-                      onPressed: _pasteFromClipboard,
-                      icon: Icon(Icons.content_paste, size: 20, color: colorScheme.onSurfaceVariant),
-                      label: Text(
-                        'Paste',
-                        style: TextStyle(
-                          color: colorScheme.onSurfaceVariant,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: colorScheme.surfaceContainerHighest,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        side: BorderSide.none,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                    ),
-
-                    // Microphone Button (Material 3 Style - Circular)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: colorScheme.primaryContainer,
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        onPressed: () {
-                          if (_isListening) {
-                            _stopListening();
-                          } else {
-                            _startListening();
-                          }
-                        },
-                        icon: Icon(
-                          _isListening ? Icons.mic_off : Icons.mic,
-                          size: 24,
-                          color: colorScheme.primary,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 60,
-                          minHeight: 60,
-                        ),
-                        padding: const EdgeInsets.all(0),
-                      ),
-                    ),
-
-                    // Translation Button (Material 3 FilledButton)
-                    FilledButton.icon(
-                      onPressed: _isTranslating || _inputController.text.isEmpty
-                          ? null
-                          : _translateText,
-                      icon: _isTranslating
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  colorScheme.onPrimary,
-                                ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12.0,
                               ),
-                            )
-                          : Icon(Icons.translate, size: 20),
-                      label: Text(
-                        'Translate',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                      ),
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-
-                // ===== OUTPUT TEXT BOX (OUTSIDE CARD) =====
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 180,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: colorScheme.outlineVariant, width: 1),
-                        borderRadius: BorderRadius.circular(10),
-                        color: colorScheme.surface,
-                      ),
-                      padding: const EdgeInsets.all(12.0),
-                      child: _isTranslating
-                          ? Center(
-                              child: CircularProgressIndicator(
+                              child: Icon(
+                                Icons.arrow_forward_ios,
+                                size: 18,
                                 color: colorScheme.primary,
                               ),
-                            )
-                          : SingleChildScrollView(
-                              child: SelectableText(
-                                _translatedText,
-                                textAlign: TextAlign.left,
+                            ),
+
+                            // Target Language Dropdown (Material 3 Style)
+                            Flexible(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: colorScheme.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: colorScheme.primary,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12.0,
+                                    vertical: 4.0,
+                                  ),
+                                  child: DropdownButton<String>(
+                                    value: _targetLanguageCode,
+                                    isExpanded: true,
+                                    underline: const SizedBox(),
+                                    icon: Icon(
+                                      Icons.expand_more,
+                                      size: 20,
+                                      color: colorScheme.primary,
+                                    ),
+                                    items: _languages.entries
+                                        .where(
+                                          (e) => e.key != 'Detect language',
+                                        )
+                                        .map((entry) {
+                                          return DropdownMenuItem<String>(
+                                            value: entry.value,
+                                            child: Text(
+                                              entry.key,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 14,
+                                                color: colorScheme.primary,
+                                              ),
+                                            ),
+                                          );
+                                        })
+                                        .toList(),
+                                    onChanged: (String? newValue) {
+                                      setState(() {
+                                        _targetLanguageCode = newValue!;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Divider
+                      // Divider(color: colorScheme.outlineVariant, height: 1, thickness: 1),
+
+                      // Input Box with SingleChildScrollView
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: SizedBox(
+                          height: 180,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: colorScheme.outlineVariant,
+                                width: 1,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                              color: colorScheme.surface,
+                            ),
+                            padding: const EdgeInsets.all(12.0),
+                            child: SingleChildScrollView(
+                              child: TextField(
+                                controller: _inputController,
+                                maxLines: null,
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: colorScheme.onSurface,
                                   height: 1.5,
                                 ),
+                                decoration: InputDecoration(
+                                  hintText: 'Nhập văn bản để dịch...',
+                                  hintStyle: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.zero,
+                                  isDense: true,
+                                ),
                               ),
                             ),
-                    ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ===== BUTTON ROW: PASTE, MICROPHONE, TRANSLATE =====
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  // Paste Button (Material 3 OutlinedButton)
+                  OutlinedButton.icon(
+                    onPressed: _pasteFromClipboard,
+                    icon: Icon(
+                      Icons.content_paste,
+                      size: 20,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    label: Text(
+                      'Paste',
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: colorScheme.surfaceContainerHighest,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      side: BorderSide.none,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+
+                  // Microphone Button (Material 3 Style - Circular)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      onPressed: () {
+                        if (_isListening) {
+                          _stopListening();
+                        } else {
+                          _startListening();
+                        }
+                      },
+                      icon: Icon(
+                        _isListening ? Icons.mic_off : Icons.mic,
+                        size: 24,
+                        color: colorScheme.primary,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 60,
+                        minHeight: 60,
+                      ),
+                      padding: const EdgeInsets.all(0),
+                    ),
+                  ),
+
+                  // Translation Button (Material 3 FilledButton)
+                  FilledButton.icon(
+                    onPressed: _isTranslating || _inputController.text.isEmpty
+                        ? null
+                        : _translateText,
+                    icon: _isTranslating
+                        ? SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                colorScheme.onPrimary,
+                              ),
+                            ),
+                          )
+                        : Icon(Icons.translate, size: 20),
+                    label: Text(
+                      'Translate',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // ===== OUTPUT TEXT BOX (OUTSIDE CARD) =====
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 180,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: colorScheme.outlineVariant,
+                        width: 1,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      color: colorScheme.surface,
+                    ),
+                    padding: const EdgeInsets.all(12.0),
+                    child: _isTranslating
+                        ? Center(
+                            child: CircularProgressIndicator(
+                              color: colorScheme.primary,
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            child: SelectableText(
+                              _translatedText,
+                              textAlign: TextAlign.left,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: colorScheme.onSurface,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-
+      ),
     );
   }
 }
@@ -702,6 +745,7 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
   Future<void> _extractTextFromPdf(File pdfFile) async {
     try {
       final List<int> bytes = await pdfFile.readAsBytes();
+      // Use the prefixed PdfDocument here
       final syncfusion.PdfDocument document = syncfusion.PdfDocument(
         inputBytes: bytes,
       );
@@ -738,20 +782,26 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
       _documentStatus =
           'Translating content to ${_getLanguageName(_selectedTargetLanguageCode)}...';
       _isTranslating = true;
+      print("STARTING translation to $_selectedTargetLanguageCode");
+      print(textToTranslate);
     });
 
     try {
-      final sourceParagraphs = _processTextForLayout(textToTranslate);
+      // final sourceParagraphs = _processTextForLayout(textToTranslate);
+      final sourceParagraphs = textToTranslate
+          .split(RegExp(r'\n\s*\n'))
+          .where((s) => s.trim().isNotEmpty)
+          .toList();
 
       final List<String> translatedParagraphs = [];
       for (final paragraph in sourceParagraphs) {
         final translation = await translator.translate(
           paragraph,
+
           to: _selectedTargetLanguageCode,
         );
         translatedParagraphs.add(translation.text);
       }
-
       await _createAndSaveTranslatedPdf(
         translatedParagraphs,
         _selectedTargetLanguageCode,
@@ -777,6 +827,28 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
     try {
       final pdf = pw.Document();
 
+      // ============== BẮT ĐẦU FIX FONT TIẾNG VIỆT ==============
+      // 1. Khởi tạo font mặc định (Courier) để dùng làm dự phòng
+      pw.Font ttf = pw.Font.courier();
+      try {
+        // 2. Thử tải file font Roboto.ttf từ assets/fonts/
+        final fontData = await rootBundle.load("assets/fonts/Roboto.ttf");
+        ttf = pw.Font.ttf(fontData);
+      } catch (e) {
+        // Nếu lỗi tải asset, in lỗi ra console và sử dụng font mặc định
+        print(
+          'FONT LOAD ERROR: Could not load Roboto.ttf. Using default Courier font. Please ensure file exists at assets/fonts/ and pubspec.yaml is correct.',
+        );
+      }
+
+      // 3. Định nghĩa TextStyle tùy chỉnh sử dụng font đã tải
+      final customTextStyle = pw.TextStyle(
+        font: ttf,
+        fontSize: 12,
+        lineSpacing: 1.5,
+      );
+      // ================= KẾT THÚC FIX FONT ===================
+
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
@@ -784,7 +856,9 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
             List<pw.Widget> content = [
               pw.Text(
                 'Translated Document (${_getLanguageName(langCode)})',
+                // Áp dụng font tùy chỉnh cho tiêu đề
                 style: pw.TextStyle(
+                  font: ttf, // <-- ÁP DỤNG FONT
                   fontSize: 24,
                   fontWeight: pw.FontWeight.bold,
                 ),
@@ -798,7 +872,8 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
                   padding: const pw.EdgeInsets.only(bottom: 12),
                   child: pw.Text(
                     paragraph,
-                    style: const pw.TextStyle(fontSize: 12),
+                    // Áp dụng customTextStyle cho nội dung
+                    style: customTextStyle, // <-- ÁP DỤNG FONT
                     textAlign: pw.TextAlign.justify,
                   ),
                 ),
@@ -812,7 +887,6 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
           },
         ),
       );
-
       final directory = await getApplicationDocumentsDirectory();
       final fileName = '${_sourceFileName}_translated_${langCode}.pdf';
       final file = File('${directory.path}/$fileName');
@@ -1233,10 +1307,8 @@ class _MyHomePageState extends State<MyHomePage> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ImageResultScreen(
-            imageFile: image,
-            extractedText: extractedText,
-          ),
+          builder: (context) =>
+              ImageResultScreen(imageFile: image, extractedText: extractedText),
         ),
       );
     }
@@ -1451,7 +1523,8 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
 
   // --- Summarization Logic ---
   Future<void> _summarizeText() async {
-    if (_extractedText.isEmpty || _extractedText.contains('Could not recognize')) {
+    if (_extractedText.isEmpty ||
+        _extractedText.contains('Could not recognize')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No valid text to summarize.')),
       );
@@ -1508,7 +1581,8 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool aiActionsDisabled = _isTranslating ||
+    bool aiActionsDisabled =
+        _isTranslating ||
         _extractedText.isEmpty ||
         _extractedText.contains('Could not recognize');
 
@@ -1556,9 +1630,7 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
                         value: _selectedTargetLanguageCode,
                         icon: const Icon(Icons.arrow_drop_down),
                         elevation: 16,
-                        style: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                        ),
+                        style: TextStyle(color: Theme.of(context).primaryColor),
                         onChanged: (String? newValue) {
                           if (newValue != null) {
                             setState(() {
@@ -1567,19 +1639,17 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
                             });
                           }
                         },
-                        items: _languages.entries
-                            .map<DropdownMenuItem<String>>((
-                              MapEntry<String, String> entry,
-                            ) {
-                              return DropdownMenuItem<String>(
-                                value: entry.value,
-                                child: Text(
-                                  'Translate to: ${entry.key}',
-                                  style: const TextStyle(color: Colors.black),
-                                ),
-                              );
-                            })
-                            .toList(),
+                        items: _languages.entries.map<DropdownMenuItem<String>>(
+                          (MapEntry<String, String> entry) {
+                            return DropdownMenuItem<String>(
+                              value: entry.value,
+                              child: Text(
+                                'Translate to: ${entry.key}',
+                                style: const TextStyle(color: Colors.black),
+                              ),
+                            );
+                          },
+                        ).toList(),
                       ),
                     ),
                   ),
@@ -1604,9 +1674,7 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
                           ),
                         )
                       : const Icon(Icons.translate),
-                  label: Text(
-                    _isTranslating ? 'Translating...' : 'Translate',
-                  ),
+                  label: Text(_isTranslating ? 'Translating...' : 'Translate'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       vertical: 15,
