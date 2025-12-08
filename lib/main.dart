@@ -13,6 +13,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:flutter/services.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:http/http.dart' as http;
+import 'package:html/parser.dart' show parse;
+// ĐÃ XÓA: import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 
 // Import the service used for ChatGPT
 import 'services/chatgpt_service.dart';
@@ -35,17 +38,6 @@ Future<void> main() async {
   }
 
   runApp(const MyApp());
-
-  // Example translator usage (can be removed if not needed)
-  final translator = GoogleTranslator();
-  final input = "Xin chao toi den tu Viet Nam";
-  translator.translate(input, from: 'vi', to: 'en').then(print);
-  var translation = await translator.translate(
-    "Xin chào, tôi đến từ Việt Nam",
-    to: 'en',
-  );
-  print(translation);
-  print(await "example".translate(to: 'pt'));
 }
 
 class MyApp extends StatelessWidget {
@@ -117,7 +109,7 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen> {
           MyHomePage(title: 'OCR Scanner', cameras: widget.cameras),
           // 3. Documents Tab (Now functional with PDF extraction)
           const DocumentsTabContent(),
-          // 4. Websites Tab (Placeholder)
+          // 4. Websites Tab (Functional)
           const WebsitesTabContent(),
         ],
       ),
@@ -152,7 +144,7 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen> {
 }
 
 // =========================================================================
-// TextTabContent (FUNCTIONAL)
+// TextTabContent (SỬ DỤNG translator_plus VÀ AUTO DETECT & RETRY)
 // =========================================================================
 
 class TextTabContent extends StatefulWidget {
@@ -164,7 +156,7 @@ class TextTabContent extends StatefulWidget {
 
 class _TextTabContentState extends State<TextTabContent> {
   final TextEditingController _inputController = TextEditingController();
-  String _translatedText = 'Translation will appear here';
+  String _translatedContent = 'Translation will appear here';
   bool _isTranslating = false;
 
   // Speech to text variables
@@ -174,16 +166,15 @@ class _TextTabContentState extends State<TextTabContent> {
 
   final translator = GoogleTranslator();
 
-  // Language map (used to determine source/target languages)
+  // Language map (Chỉ liệt kê ngôn ngữ đích)
   final Map<String, String> _languages = {
-    'Detect language': 'auto', // Special code for auto-detection
-    'English': 'en',
     'Vietnamese': 'vi',
+    'English': 'en',
     'Spanish': 'es',
     'French': 'fr',
   };
 
-  String _sourceLanguageCode = 'auto';
+  // Nguồn sẽ được tự động phát hiện (auto-detect)
   String _targetLanguageCode = 'en';
 
   @override
@@ -276,27 +267,44 @@ class _TextTabContentState extends State<TextTabContent> {
 
     setState(() {
       _isTranslating = true;
-      _translatedText = 'Translating...';
+      _translatedContent = 'Translating...';
     });
 
-    try {
-      final translation = await translator.translate(
-        inputText,
-        from: _sourceLanguageCode,
-        to: _targetLanguageCode,
-      );
+    // BẮT ĐẦU CƠ CHẾ THỬ LẠI
+    const int maxRetries = 3;
+    const Duration delay = Duration(milliseconds: 700);
 
-      setState(() {
-        _translatedText = translation.text;
-        _isTranslating = false;
-      });
-    } catch (e) {
-      print('Text Tab Translation Error: $e');
-      setState(() {
-        _translatedText = 'Error during translation. Check network/API status.';
-        _isTranslating = false;
-      });
+    String resultText = 'Error during translation via translator_plus.';
+    bool success = false;
+
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        final translation = await translator.translate(
+          inputText,
+          // Bỏ qua tham số 'from' để kích hoạt Auto Detect
+          to: _targetLanguageCode,
+        );
+        resultText = translation.text;
+        success = true;
+        break; // Thành công! Thoát vòng lặp thử lại
+      } catch (e) {
+        print(
+          'Text Translation attempt ${attempt + 1} failed. Retrying in 700ms...',
+        );
+        await Future.delayed(delay);
+      }
     }
+    // KẾT THÚC CƠ CHẾ THỬ LẠI
+
+    setState(() {
+      if (success) {
+        _translatedContent = resultText;
+      } else {
+        _translatedContent =
+            'Error during translation via translator_plus. Vui lòng thử lại sau.';
+      }
+      _isTranslating = false;
+    });
   }
 
   @override
@@ -307,8 +315,8 @@ class _TextTabContentState extends State<TextTabContent> {
     String getTargetName() {
       return _languages.entries
           .firstWhere(
-            (e) => e.value == _targetLanguageCode,
-            orElse: () => const MapEntry('Unknown', ''),
+            (entry) => entry.value == _targetLanguageCode,
+            orElse: () => const MapEntry('Vietnamese', 'vi'),
           )
           .key;
     }
@@ -611,7 +619,7 @@ class _TextTabContentState extends State<TextTabContent> {
 }
 
 // =========================================================================
-// DocumentsTabContent (Functional with PDF extraction and PDF creation)
+// DocumentsTabContent (ĐÃ CHUYỂN SANG translator_plus)
 // =========================================================================
 class DocumentsTabContent extends StatefulWidget {
   const DocumentsTabContent({super.key});
@@ -626,9 +634,9 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
   String _sourceFileName = '';
   bool _isProcessing = false;
   bool _isTranslating = false;
-  final translator = GoogleTranslator();
-  final ChatGPTService _chatGPTService =
-      ChatGPTService(); // NEW: For summarization
+
+  final translator = GoogleTranslator(); // Sử dụng translator_plus
+  final ChatGPTService _chatGPTService = ChatGPTService();
 
   // Language map
   final Map<String, String> _languages = {
@@ -640,7 +648,12 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
     'Japanese': 'ja',
   };
 
-  String _selectedTargetLanguageCode = 'en'; // Default target
+  String _selectedTargetLanguageCode = 'vi'; // Đích mặc định: Vietnamese
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
 
   // Helper function to find the language name from its code
   String _getLanguageName(String code) {
@@ -652,11 +665,18 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
         .key;
   }
 
-  // NEW: Layout processing function
+  // NEW: Layout processing function (ĐÃ SỬA LỖI REGEX VÀ NULL SAFETY)
   List<String> _processTextForLayout(String rawText) {
-    return rawText
+    // SỬA: Loại bỏ cú pháp \p{L} không hỗ trợ và sửa lỗi null check
+    final cleanText = rawText.replaceAll(
+      RegExp(r'[^\w\s\.\,;:\-?!]', unicode: true),
+      ' ',
+    );
+
+    // Dùng s!.trim() để sửa lỗi null safety
+    return cleanText
         .split(RegExp(r'\n\s*\n'))
-        .where((s) => s.trim().isNotEmpty)
+        .where((s) => s!.trim().isNotEmpty)
         .toList();
   }
 
@@ -670,7 +690,7 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
 
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: ['pdf'],
+      allowedExtensions: ['pdf'], // Focus only on PDF
       allowMultiple: false,
     );
 
@@ -702,6 +722,7 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
   Future<void> _extractTextFromPdf(File pdfFile) async {
     try {
       final List<int> bytes = await pdfFile.readAsBytes();
+      // Use the prefixed PdfDocument here
       final syncfusion.PdfDocument document = syncfusion.PdfDocument(
         inputBytes: bytes,
       );
@@ -738,19 +759,29 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
       _documentStatus =
           'Translating content to ${_getLanguageName(_selectedTargetLanguageCode)}...';
       _isTranslating = true;
+      print("STARTING translation to $_selectedTargetLanguageCode");
+      print(textToTranslate);
     });
 
     try {
-      final sourceParagraphs = _processTextForLayout(textToTranslate);
+      // final sourceParagraphs = _processTextForLayout(textToTranslate);
+      final sourceParagraphs = textToTranslate
+          .split(RegExp(r'\n\s*\n'))
+          .where((s) => s.trim().isNotEmpty)
+          .toList();
 
       final List<String> translatedParagraphs = [];
       for (final paragraph in sourceParagraphs) {
         final translation = await translator.translate(
           paragraph,
+
           to: _selectedTargetLanguageCode,
         );
         translatedParagraphs.add(translation.text);
       }
+      String Bon = "Tôi là Bon. Tôi là một con chó";
+      final phan_dich = await translator.translate(Bon, from: 'auto', to: 'en');
+      print(phan_dich);
 
       await _createAndSaveTranslatedPdf(
         translatedParagraphs,
@@ -777,6 +808,28 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
     try {
       final pdf = pw.Document();
 
+      // ============== BẮT ĐẦU FIX FONT TIẾNG VIỆT ==============
+      // 1. Khởi tạo font mặc định (Courier) để dùng làm dự phòng
+      pw.Font ttf = pw.Font.courier();
+      try {
+        // 2. Thử tải file font Roboto.ttf từ assets/fonts/
+        final fontData = await rootBundle.load("assets/fonts/Roboto.ttf");
+        ttf = pw.Font.ttf(fontData);
+      } catch (e) {
+        // Nếu lỗi tải asset, in lỗi ra console và sử dụng font mặc định
+        print(
+          'FONT LOAD ERROR: Could not load Roboto.ttf. Using default Courier font. Please ensure file exists at assets/fonts/ and pubspec.yaml is correct.',
+        );
+      }
+
+      // 3. Định nghĩa TextStyle tùy chỉnh sử dụng font đã tải
+      final customTextStyle = pw.TextStyle(
+        font: ttf,
+        fontSize: 12,
+        lineSpacing: 1.5,
+      );
+      // ================= KẾT THÚC FIX FONT ===================
+
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
@@ -784,7 +837,9 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
             List<pw.Widget> content = [
               pw.Text(
                 'Translated Document (${_getLanguageName(langCode)})',
+                // Áp dụng font tùy chỉnh cho tiêu đề
                 style: pw.TextStyle(
+                  font: ttf, // <-- ÁP DỤNG FONT
                   fontSize: 24,
                   fontWeight: pw.FontWeight.bold,
                 ),
@@ -798,7 +853,8 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
                   padding: const pw.EdgeInsets.only(bottom: 12),
                   child: pw.Text(
                     paragraph,
-                    style: const pw.TextStyle(fontSize: 12),
+                    // Áp dụng customTextStyle cho nội dung
+                    style: customTextStyle, // <-- ÁP DỤNG FONT
                     textAlign: pw.TextAlign.justify,
                   ),
                 ),
@@ -813,6 +869,7 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
         ),
       );
 
+      // ... (Phần lưu file và mở file không đổi)
       final directory = await getApplicationDocumentsDirectory();
       final fileName = '${_sourceFileName}_translated_${langCode}.pdf';
       final file = File('${directory.path}/$fileName');
@@ -984,12 +1041,13 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
                         if (newValue != null) {
                           setState(() {
                             _selectedTargetLanguageCode = newValue;
-                            if (_extractedText.isNotEmpty &&
-                                !aiActionsDisabled) {
+
+                            if (_extractedText.isNotEmpty) {
+                              // Dịch lại ngay sau khi đổi ngôn ngữ
                               _translateExtractedText(_extractedText);
                             } else {
                               _documentStatus =
-                                  'Target language set to ${_getLanguageName(newValue)}.';
+                                  'Target language set to ${_getLanguageName(newValue)}. Upload a file to proceed.';
                             }
                           });
                         }
@@ -1079,63 +1137,236 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
                 icon: const Icon(Icons.smart_toy),
                 label: const Text('Chat with AI'),
                 style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 20,
-                  ),
-                  backgroundColor: Colors.deepPurple,
+                  backgroundColor: Colors.redAccent,
                   foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 50),
         ],
       ),
     );
   }
 }
 
-class WebsitesTabContent extends StatelessWidget {
+// =========================================================================
+// WebsitesTabContent (ĐÃ CHUYỂN SANG translator_plus)
+// =========================================================================
+
+class WebsitesTabContent extends StatefulWidget {
   const WebsitesTabContent({super.key});
 
   @override
+  State<WebsitesTabContent> createState() => _WebsitesTabContentState();
+}
+
+class _WebsitesTabContentState extends State<WebsitesTabContent> {
+  final TextEditingController _urlController = TextEditingController();
+  String _translatedContent = 'Translated website content will appear here.';
+  bool _isTranslating = false;
+
+  final translator = GoogleTranslator(); // Sử dụng translator_plus
+
+  final Map<String, String> _languages = {
+    'Vietnamese': 'vi',
+    'English': 'en',
+    'Spanish': 'es',
+    'French': 'fr',
+  };
+
+  // Nguồn sẽ được tự động phát hiện (auto-detect)
+  String _targetLanguageCode = 'en';
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchAndTranslateWebsite() async {
+    final url = _urlController.text.trim();
+    if (url.isEmpty) {
+      setState(() => _translatedContent = 'Please enter a website URL.');
+      return;
+    }
+
+    // Validate URL format (simple check)
+    final uri = Uri.tryParse(url);
+    if (uri == null ||
+        !uri.hasScheme ||
+        (!uri.isScheme('http') && !uri.isScheme('https'))) {
+      setState(
+        () => _translatedContent =
+            'Invalid URL format. Please include http:// or https://',
+      );
+      return;
+    }
+
+    setState(() {
+      _isTranslating = true;
+      _translatedContent = 'Fetching content from $url...';
+    });
+
+    try {
+      final response = await http.get(uri);
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Failed to load website (Status Code: ${response.statusCode})',
+        );
+      }
+
+      // Parse the HTML content
+      final document = parse(response.body);
+
+      // Extract text content from the body, excluding script and style tags
+      final allTextNodes =
+          document.body?.nodes
+              .where((node) => node.nodeType == 3) // Text nodes
+              .map((node) => node.text?.trim() ?? '')
+              .where((text) => text.isNotEmpty)
+              .toList() ??
+          [];
+
+      String rawText = allTextNodes.join(' ');
+
+      if (rawText.length > 5000) {
+        rawText = rawText.substring(0, 5000); // Limit text length for API
+        setState(() {
+          _translatedContent += '\n(Warning: Text truncated for translation)';
+        });
+      }
+
+      setState(() {
+        _translatedContent = 'Translating content...';
+      });
+
+      // SỬ DỤNG translator_plus (Auto detect nguồn)
+      final translation = await translator.translate(
+        rawText,
+        to: _targetLanguageCode,
+      );
+
+      setState(() {
+        _translatedContent =
+            '--- Translated Website Content ---\n\n${translation.text}';
+        _isTranslating = false;
+      });
+    } catch (e) {
+      print('Website Translation Error: $e');
+      setState(() {
+        _translatedContent =
+            'Error: Could not process or translate the website. ($e)';
+        _isTranslating = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Helper to get the display name for the target language
+    String getTargetName() {
+      return _languages.entries
+          .firstWhere(
+            (entry) => entry.value == _targetLanguageCode,
+            orElse: () => const MapEntry('Vietnamese', 'vi'),
+          )
+          .key;
+    }
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.language, size: 80, color: Colors.blueGrey),
-          const SizedBox(height: 20),
-          const Text(
-            'Translate an entire webpage.',
-            style: TextStyle(fontSize: 18),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
           TextField(
+            controller: _urlController,
             decoration: InputDecoration(
-              hintText: 'Enter URL',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              hintText: 'Enter Website URL (e.g., https://example.com)',
               suffixIcon: IconButton(
-                icon: const Icon(Icons.translate),
-                onPressed: () {
-                  // Implement website translation logic
+                icon: const Icon(Icons.clear),
+                onPressed: () => _urlController.clear(),
+              ),
+              border: const OutlineInputBorder(),
+            ),
+            keyboardType: TextInputType.url,
+            onSubmitted: (_) => _fetchAndTranslateWebsite(),
+          ),
+          const SizedBox(height: 10),
+
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Source: Auto Detect',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+
+              DropdownButton<String>(
+                value: _targetLanguageCode,
+                items: _languages.entries.map((entry) {
+                  return DropdownMenuItem<String>(
+                    value: entry.value,
+                    child: Text(entry.key),
+                  );
+                }).toList(),
+                onChanged: (String? newValue) {
+                  if (newValue != null) {
+                    setState(() {
+                      _targetLanguageCode = newValue;
+                    });
+                    // Translate on change if URL is not empty
+                    if (_urlController.text.isNotEmpty) {
+                      _fetchAndTranslateWebsite();
+                    }
+                  }
                 },
               ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          DropdownButton<String>(
-            value: 'en', // Default value
-            items: const [
-              DropdownMenuItem(value: 'en', child: Text('English')),
-              DropdownMenuItem(value: 'vi', child: Text('Vietnamese')),
+
+              ElevatedButton.icon(
+                onPressed: _isTranslating ? null : _fetchAndTranslateWebsite,
+                icon: _isTranslating
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                    : const Icon(Icons.language),
+                label: Text(
+                  'Translate to ${getTargetName()}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue.shade700,
+                  foregroundColor: Colors.white,
+                ),
+              ),
             ],
-            onChanged: (value) {},
+          ),
+          const SizedBox(height: 10),
+
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(10.0),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.topLeft,
+              child: SingleChildScrollView(
+                child: Text(
+                  _translatedContent,
+                  style: TextStyle(color: Colors.blueGrey[800], fontSize: 16),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -1149,7 +1380,6 @@ class WebsitesTabContent extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title, required this.cameras});
-
   final String title;
   final List<CameraDescription> cameras;
 
@@ -1419,24 +1649,44 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
     }
 
     setState(() {
-      _translatedText =
-          "Translating to ${_getLanguageName(_selectedTargetLanguageCode)}...";
       _isTranslating = true;
+      _translatedText =
+          'Translating to ${_getLanguageName(_targetLanguageCode)}...';
     });
 
-    try {
-      var googleTranslation = await translator.translate(
-        extractedText,
-        to: _selectedTargetLanguageCode,
-      );
+    // BẮT ĐẦU CƠ CHẾ THỬ LẠI
+    const int maxRetries = 3;
+    const Duration delay = Duration(milliseconds: 700);
 
-      String resultText = googleTranslation.text;
+    String resultText = 'Error during translation via translator_plus.';
+    bool success = false;
 
+    for (int attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // SỬ DỤNG translator_plus (Auto detect nguồn)
+        final translation = await translator.translate(
+          textToTranslate,
+          to: _targetLanguageCode,
+        );
+        resultText = translation.text;
+        success = true;
+        break;
+      } catch (e) {
+        print(
+          'Image Translation attempt ${attempt + 1} failed. Retrying in 700ms...',
+        );
+        await Future.delayed(delay);
+      }
+    }
+    // KẾT THÚC CƠ CHẾ THỬ LẠI
+
+    if (mounted) {
       setState(() {
-        if (resultText.isEmpty) {
-          _translatedText = "Translation failed: API returned empty string.";
-        } else {
+        if (success) {
           _translatedText = resultText;
+        } else {
+          _translatedText =
+              'Error during translation via translator_plus. Vui lòng thử lại sau.';
         }
         _isTranslating = false;
       });
