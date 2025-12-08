@@ -366,45 +366,53 @@ class _TextTabContentState extends State<TextTabContent> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 6),
 
                 // ===== BUTTON ROW: PASTE, MICROPHONE, TRANSLATE =====
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  spacing: 8,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Paste Button
+                    // Left Side: Paste and Microphone Buttons
                     Flexible(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          // TODO: Implement paste functionality
-                        },
-                        icon: const Icon(Icons.content_paste),
-                        label: const Text('Paste'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                      child: Row(
+                        children: [
+                          // Paste Button
+                          Flexible(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                // TODO: Implement paste functionality
+                              },
+                              icon: const Icon(Icons.content_paste),
+                              label: const Text('Paste'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                backgroundColor: Colors.grey.shade200,
+                                foregroundColor: Colors.black54,
+                              ),
+                            ),
                           ),
-                          backgroundColor: Colors.grey.shade200,
-                          foregroundColor: Colors.black54,
-                        ),
+
+                          const SizedBox(width: 8),
+
+                          // Microphone Button (Icon only)
+                          IconButton(
+                            onPressed: () {
+                              // TODO: Implement microphone functionality
+                            },
+                            icon: const Icon(Icons.mic),
+                            style: IconButton.styleFrom(
+                              backgroundColor: Colors.grey.shade200,
+                              foregroundColor: Colors.black54,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
-                    // Microphone Button (Icon only)
-                    IconButton(
-                      onPressed: () {
-                        // TODO: Implement microphone functionality
-                      },
-                      icon: const Icon(Icons.mic),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.grey.shade200,
-                        foregroundColor: Colors.black54,
-                      ),
-                    ),
-
-                    // Translation Button
+                    // Right Side: Translation Button
                     Flexible(
                       child: ElevatedButton.icon(
                         onPressed: _isTranslating || _inputController.text.isEmpty
@@ -444,27 +452,74 @@ class _TextTabContentState extends State<TextTabContent> {
 
                 const SizedBox(height: 16),
 
-                // ===== OUTPUT BOX AT BOTTOM =====
-                SizedBox(
-                  height: 200,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    padding: const EdgeInsets.all(12.0),
-                    child: _isTranslating
-                        ? const Center(child: CircularProgressIndicator())
-                        : SingleChildScrollView(
-                            child: SelectableText(
-                              _translatedText,
+                // ===== OUTPUT BOX AT BOTTOM (MATCHING INPUT CARD STRUCTURE) =====
+                Card(
+                  elevation: 0,
+                  color: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide.none,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Output Header (matching input card header height)
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(16),
+                            topRight: Radius.circular(16),
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Translation Result',
                               style: TextStyle(
-                                color: Colors.blueGrey[800],
-                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                                color: Colors.black87,
                               ),
                             ),
+                            Icon(Icons.check_circle, size: 20, color: Colors.green.shade600),
+                          ],
+                        ),
+                      ),
+
+                      // Divider (matching input card divider)
+                      Divider(color: Colors.grey.shade300, height: 1, thickness: 1),
+
+                      // Output Text Box (matching input box size)
+                      Padding(
+                        padding: const EdgeInsets.all(14.0),
+                        child: SizedBox(
+                          height: 200,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.transparent),
+                              borderRadius: BorderRadius.circular(10),
+                              color: Colors.white,
+                            ),
+                            padding: const EdgeInsets.all(12.0),
+                            child: _isTranslating
+                                ? const Center(child: CircularProgressIndicator())
+                                : SingleChildScrollView(
+                                    child: SelectableText(
+                                      _translatedText,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.black87,
+                                        height: 1.5,
+                                      ),
+                                    ),
+                                  ),
                           ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
