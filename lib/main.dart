@@ -353,9 +353,9 @@ class _TextTabContentState extends State<TextTabContent> {
 
                         // Input Box with SingleChildScrollView
                         Padding(
-                          padding: const EdgeInsets.all(14.0),
+                          padding: const EdgeInsets.all(16.0),
                           child: SizedBox(
-                            height: 200,
+                            height: 180,
                             child: Container(
                               decoration: BoxDecoration(
                                 border: Border.all(color: colorScheme.outlineVariant, width: 1),
@@ -377,6 +377,7 @@ class _TextTabContentState extends State<TextTabContent> {
                                     hintStyle: TextStyle(color: colorScheme.onSurfaceVariant),
                                     border: InputBorder.none,
                                     contentPadding: EdgeInsets.zero,
+                                    isDense: true,
                                   ),
                                 ),
                               ),
@@ -488,7 +489,7 @@ class _TextTabContentState extends State<TextTabContent> {
                         borderRadius: BorderRadius.circular(10),
                         color: colorScheme.surface,
                       ),
-                      padding: const EdgeInsets.all(14.0),
+                      padding: const EdgeInsets.all(12.0),
                       child: _isTranslating
                           ? Center(
                               child: CircularProgressIndicator(
