@@ -88,6 +88,14 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Menu button tapped')),
+            );
+          },
+        ),
         title: Text(
           _tabNames[_selectedIndex],
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -97,6 +105,17 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen> {
         centerTitle: true,
         elevation: 0,
         scrolledUnderElevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: IndexedStack(
         index: _selectedIndex,
@@ -1796,3 +1815,180 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 }
+
+// ===================================================================
+// SETTINGS SCREEN
+// ===================================================================
+
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _notificationsEnabled = true;
+  bool _darkModeEnabled = false;
+  String _selectedLanguage = 'English';
+
+  final List<String> _languages = [
+    'English',
+    'Vietnamese',
+    'Spanish',
+    'French',
+    'Chinese',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Settings'),
+        centerTitle: true,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16.0),
+        children: [
+          // General Section
+          _buildSectionTitle('General'),
+          const SizedBox(height: 8),
+          _buildListTile(
+            title: 'App Language',
+            subtitle: _selectedLanguage,
+            onTap: _showLanguageDialog,
+          ),
+          const Divider(),
+
+          // Notifications Section
+          const SizedBox(height: 16),
+          _buildSectionTitle('Notifications'),
+          const SizedBox(height: 8),
+          _buildSwitchTile(
+            title: 'Enable Notifications',
+            subtitle: 'Receive alerts and updates',
+            value: _notificationsEnabled,
+            onChanged: (value) {
+              setState(() {
+                _notificationsEnabled = value;
+              });
+            },
+          ),
+          const Divider(),
+
+          // Display Section
+          const SizedBox(height: 16),
+          _buildSectionTitle('Display'),
+          const SizedBox(height: 8),
+          _buildSwitchTile(
+            title: 'Dark Mode',
+            subtitle: 'Use dark theme (coming soon)',
+            value: _darkModeEnabled,
+            onChanged: (value) {
+              setState(() {
+                _darkModeEnabled = value;
+              });
+            },
+          ),
+          const Divider(),
+
+          // About Section
+          const SizedBox(height: 16),
+          _buildSectionTitle('About'),
+          const SizedBox(height: 8),
+          _buildListTile(
+            title: 'App Version',
+            subtitle: '1.0.0',
+            onTap: () {},
+          ),
+          const SizedBox(height: 8),
+          _buildListTile(
+            title: 'Privacy Policy',
+            subtitle: 'View our privacy policy',
+            onTap: () {},
+          ),
+          const SizedBox(height: 8),
+          _buildListTile(
+            title: 'Terms of Service',
+            subtitle: 'View our terms',
+            onTap: () {},
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w600,
+        color: Theme.of(context).colorScheme.primary,
+      ),
+    );
+  }
+
+  Widget _buildListTile({
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: onTap,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+    );
+  }
+
+  Widget _buildSwitchTile({
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return SwitchListTile(
+      title: Text(title),
+      subtitle: Text(subtitle),
+      value: value,
+      onChanged: onChanged,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+    );
+  }
+
+  void _showLanguageDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Language'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: _languages.map((language) {
+                return RadioListTile<String>(
+                  title: Text(language),
+                  value: language,
+                  groupValue: _selectedLanguage,
+                  onChanged: (String? value) {
+                    setState(() {
+                      _selectedLanguage = value ?? 'English';
+                    });
+                    Navigator.pop(context);
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
