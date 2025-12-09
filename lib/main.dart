@@ -77,9 +77,8 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen> {
 
   final List<String> _tabNames = [
     'Text Translation',
-    'Image OCR',
+    'Scanner',
     'Document Translation',
-    'Scan to PDF',
   ];
 
   @override
@@ -120,10 +119,9 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen> {
       body: IndexedStack(
         index: _selectedIndex,
         children: [
-          const TextTabContent(), // 1. Text
-          MyHomePage(title: 'OCR Scanner', cameras: widget.cameras), // 2. Images
+          const TextTabContent(), // 1. Text Translation
+          ScannerTabContent(cameras: widget.cameras), // 2. Scanner (Images + Scan PDF)
           const DocumentsTabContent(), // 3. Documents
-          const ScanPdfTabContent(), // 4. Scan to PDF (mới)
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -138,15 +136,242 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen> {
             icon: Icon(Icons.text_fields),
             label: 'Text',
           ),
-          NavigationDestination(icon: Icon(Icons.image), label: 'Images'),
+          NavigationDestination(icon: Icon(Icons.document_scanner), label: 'Scanner'),
           NavigationDestination(
             icon: Icon(Icons.description),
             label: 'Documents',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.picture_as_pdf),
-            label: 'Scan PDF',
+        ],
+      ),
+    );
+  }
+}
+
+// ===================================================================
+// SCANNER TAB - COMBINES IMAGE OCR AND SCAN TO PDF
+// ===================================================================
+
+class ScannerTabContent extends StatefulWidget {
+  final List<CameraDescription> cameras;
+
+  const ScannerTabContent({super.key, required this.cameras});
+
+  @override
+  State<ScannerTabContent> createState() => _ScannerTabContentState();
+}
+
+class _ScannerTabContentState extends State<ScannerTabContent> {
+  bool _isScanning = false;
+
+  Future<void> _scanDocumentAsPdf() async {
+    setState(() {
+      _isScanning = true;
+    });
+
+    dynamic scannedDocuments;
+
+    try {
+      scannedDocuments =
+          await FlutterDocScanner().getScannedDocumentAsPdf(page: 4);
+
+      if (!mounted) return;
+
+      if (scannedDocuments == null) {
+        setState(() {
+          _isScanning = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Scan was cancelled')),
+          );
+        }
+        return;
+      }
+
+      String? pdfUri;
+      int? pageCount;
+
+      if (scannedDocuments is Map) {
+        pdfUri = scannedDocuments['pdfUri'] as String?;
+        pageCount = scannedDocuments['pageCount'] as int?;
+      }
+
+      if (pdfUri == null) {
+        setState(() {
+          _isScanning = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Scan finished but no PDF was created')),
+          );
+        }
+        return;
+      }
+
+      final pdfPath = Uri.parse(pdfUri).path;
+
+      await OpenFilex.open(pdfPath);
+
+      setState(() {
+        _isScanning = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Scan complete! PDF opened.')),
+        );
+      }
+    } on PlatformException catch (e) {
+      setState(() {
+        _isScanning = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to scan: ${e.message ?? e.code}')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isScanning = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unexpected error: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 24),
+
+          // Image OCR Section
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MyHomePage(
+                      title: 'OCR Scanner',
+                      cameras: widget.cameras,
+                    ),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.image_search,
+                      size: 64,
+                      color: colorScheme.primary,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Image OCR',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Extract text from images using your camera or gallery',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Icon(
+                        Icons.arrow_forward,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
+
+          const SizedBox(height: 20),
+
+          // Scan to PDF Section
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: InkWell(
+              onTap: _isScanning ? null : _scanDocumentAsPdf,
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _isScanning
+                        ? const SizedBox(
+                            width: 64,
+                            height: 64,
+                            child: CircularProgressIndicator(strokeWidth: 3),
+                          )
+                        : Icon(
+                            Icons.picture_as_pdf,
+                            size: 64,
+                            color: colorScheme.primary,
+                          ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Scan to PDF',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _isScanning
+                          ? 'Opening scanner...'
+                          : 'Scan documents and save them as PDF files',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Icon(
+                        _isScanning ? Icons.hourglass_empty : Icons.arrow_forward,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -1305,6 +1530,18 @@ class _MyHomePageState extends State<MyHomePage> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Image OCR',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: false,
+        titleSpacing: 0,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -1561,9 +1798,16 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('OCR Result'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        title: Text(
+          'OCR Result',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        centerTitle: false,
+        titleSpacing: 0,
+        elevation: 0,
+        scrolledUnderElevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -1923,7 +2167,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+      style: Theme.of(context).textTheme.titleLarge?.copyWith(
         fontWeight: FontWeight.w600,
         color: Theme.of(context).colorScheme.primary,
       ),
