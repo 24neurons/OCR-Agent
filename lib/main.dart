@@ -90,16 +90,12 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen> {
       appBar: AppBar(
         title: Text(
           _tabNames[_selectedIndex],
-          style: TextStyle(
-            fontSize: 20,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.w600,
-            color: colorScheme.onPrimary,
           ),
         ),
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
+        centerTitle: true,
         elevation: 0,
-        centerTitle: false,
         scrolledUnderElevation: 0,
       ),
       body: IndexedStack(
