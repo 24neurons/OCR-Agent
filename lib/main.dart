@@ -90,16 +90,16 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen> {
         leading: IconButton(
           icon: const Icon(Icons.menu),
           onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Menu button tapped')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Menu button tapped')));
           },
         ),
         title: Text(
           _tabNames[_selectedIndex],
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
         elevation: 0,
@@ -120,7 +120,9 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen> {
         index: _selectedIndex,
         children: [
           const TextTabContent(), // 1. Text Translation
-          ScannerTabContent(cameras: widget.cameras), // 2. Scanner (Images + Scan PDF)
+          ScannerTabContent(
+            cameras: widget.cameras,
+          ), // 2. Scanner (Images + Scan PDF)
           const DocumentsTabContent(), // 3. Documents
         ],
       ),
@@ -132,11 +134,11 @@ class _MainTranslatorScreenState extends State<MainTranslatorScreen> {
           });
         },
         destinations: const [
+          NavigationDestination(icon: Icon(Icons.text_fields), label: 'Text'),
           NavigationDestination(
-            icon: Icon(Icons.text_fields),
-            label: 'Text',
+            icon: Icon(Icons.document_scanner),
+            label: 'Scanner',
           ),
-          NavigationDestination(icon: Icon(Icons.document_scanner), label: 'Scanner'),
           NavigationDestination(
             icon: Icon(Icons.description),
             label: 'Documents',
@@ -171,8 +173,9 @@ class _ScannerTabContentState extends State<ScannerTabContent> {
     dynamic scannedDocuments;
 
     try {
-      scannedDocuments =
-          await FlutterDocScanner().getScannedDocumentAsPdf(page: 4);
+      scannedDocuments = await FlutterDocScanner().getScannedDocumentAsPdf(
+        page: 4,
+      );
 
       if (!mounted) return;
 
@@ -181,9 +184,9 @@ class _ScannerTabContentState extends State<ScannerTabContent> {
           _isScanning = false;
         });
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Scan was cancelled')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Scan was cancelled')));
         }
         return;
       }
@@ -202,7 +205,9 @@ class _ScannerTabContentState extends State<ScannerTabContent> {
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Scan finished but no PDF was created')),
+            const SnackBar(
+              content: Text('Scan finished but no PDF was created'),
+            ),
           );
         }
         return;
@@ -235,9 +240,9 @@ class _ScannerTabContentState extends State<ScannerTabContent> {
         _isScanning = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Unexpected error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Unexpected error: $e')));
       }
     }
   }
@@ -285,10 +290,11 @@ class _ScannerTabContentState extends State<ScannerTabContent> {
                     const SizedBox(height: 16),
                     Text(
                       'Image OCR',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurface,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurface,
+                          ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -342,10 +348,11 @@ class _ScannerTabContentState extends State<ScannerTabContent> {
                     const SizedBox(height: 16),
                     Text(
                       'Scan to PDF',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: colorScheme.onSurface,
-                      ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: colorScheme.onSurface,
+                          ),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -361,7 +368,9 @@ class _ScannerTabContentState extends State<ScannerTabContent> {
                     Align(
                       alignment: Alignment.centerRight,
                       child: Icon(
-                        _isScanning ? Icons.hourglass_empty : Icons.arrow_forward,
+                        _isScanning
+                            ? Icons.hourglass_empty
+                            : Icons.arrow_forward,
                         color: colorScheme.primary,
                       ),
                     ),
@@ -646,20 +655,20 @@ class _TextTabContentState extends State<TextTabContent> {
                                     items: _languages.entries
                                         .where(
                                           (e) => e.key != 'Detect language',
-                                    )
+                                        )
                                         .map((entry) {
-                                      return DropdownMenuItem<String>(
-                                        value: entry.value,
-                                        child: Text(
-                                          entry.key,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 14,
-                                            color: colorScheme.primary,
-                                          ),
-                                        ),
-                                      );
-                                    })
+                                          return DropdownMenuItem<String>(
+                                            value: entry.value,
+                                            child: Text(
+                                              entry.key,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 14,
+                                                color: colorScheme.primary,
+                                              ),
+                                            ),
+                                          );
+                                        })
                                         .toList(),
                                     onChanged: (String? newValue) {
                                       setState(() {
@@ -776,15 +785,15 @@ class _TextTabContentState extends State<TextTabContent> {
                         : _translateText,
                     icon: _isTranslating
                         ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          colorScheme.onPrimary,
-                        ),
-                      ),
-                    )
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                colorScheme.onPrimary,
+                              ),
+                            ),
+                          )
                         : const Icon(Icons.translate, size: 20),
                     label: const Text(
                       'Translate',
@@ -823,21 +832,21 @@ class _TextTabContentState extends State<TextTabContent> {
                     padding: const EdgeInsets.all(12.0),
                     child: _isTranslating
                         ? Center(
-                      child: CircularProgressIndicator(
-                        color: colorScheme.primary,
-                      ),
-                    )
+                            child: CircularProgressIndicator(
+                              color: colorScheme.primary,
+                            ),
+                          )
                         : SingleChildScrollView(
-                      child: SelectableText(
-                        _translatedText,
-                        textAlign: TextAlign.left,
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: colorScheme.onSurface,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
+                            child: SelectableText(
+                              _translatedText,
+                              textAlign: TextAlign.left,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: colorScheme.onSurface,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
                   ),
                 ),
               ),
@@ -884,8 +893,8 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
     return _languages.entries
         .firstWhere(
           (entry) => entry.value == code,
-      orElse: () => const MapEntry('Unknown', ''),
-    )
+          orElse: () => const MapEntry('Unknown', ''),
+        )
         .key;
   }
 
@@ -933,8 +942,9 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
       final syncfusion.PdfDocument document = syncfusion.PdfDocument(
         inputBytes: bytes,
       );
-      final syncfusion.PdfTextExtractor extractor =
-      syncfusion.PdfTextExtractor(document);
+      final syncfusion.PdfTextExtractor extractor = syncfusion.PdfTextExtractor(
+        document,
+      );
       final String text = extractor.extractText();
       document.dispose();
 
@@ -962,7 +972,7 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
   Future<void> _translateExtractedText(String textToTranslate) async {
     setState(() {
       _documentStatus =
-      'Translating content to ${_getLanguageName(_selectedTargetLanguageCode)}...';
+          'Translating content to ${_getLanguageName(_selectedTargetLanguageCode)}...';
       _isTranslating = true;
     });
 
@@ -998,9 +1008,9 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
   }
 
   Future<void> _createAndSaveTranslatedPdf(
-      List<String> translatedParagraphs,
-      String langCode,
-      ) async {
+    List<String> translatedParagraphs,
+    String langCode,
+  ) async {
     try {
       final pdf = pw.Document();
 
@@ -1101,7 +1111,7 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
         {
           'role': 'system',
           'content':
-          'You are an expert summarization bot. Provide a concise, three-sentence summary of the user\'s input text.',
+              'You are an expert summarization bot. Provide a concise, three-sentence summary of the user\'s input text.',
         },
         {'role': 'user', 'content': _extractedText},
       ];
@@ -1180,8 +1190,9 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed:
-            _isProcessing || _isTranslating ? null : _pickDocumentFile,
+            onPressed: _isProcessing || _isTranslating
+                ? null
+                : _pickDocumentFile,
             child: Text(
               _isProcessing ? 'Processing...' : 'Browse your computer',
             ),
@@ -1219,22 +1230,22 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
                               _translateExtractedText(_extractedText);
                             } else {
                               _documentStatus =
-                              'Target language set to ${_getLanguageName(newValue)}.';
+                                  'Target language set to ${_getLanguageName(newValue)}.';
                             }
                           });
                         }
                       },
-                      items: _languages.entries.map<DropdownMenuItem<String>>(
-                            (MapEntry<String, String> entry) {
-                          return DropdownMenuItem<String>(
-                            value: entry.value,
-                            child: Text(
-                              'Translate to: ${entry.key}',
-                              style: const TextStyle(color: Colors.black),
-                            ),
-                          );
-                        },
-                      ).toList(),
+                      items: _languages.entries.map<DropdownMenuItem<String>>((
+                        MapEntry<String, String> entry,
+                      ) {
+                        return DropdownMenuItem<String>(
+                          value: entry.value,
+                          child: Text(
+                            'Translate to: ${entry.key}',
+                            style: const TextStyle(color: Colors.black),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                 ),
@@ -1244,18 +1255,19 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
                 onPressed: aiActionsDisabled
                     ? null
                     : () {
-                  _translateExtractedText(_extractedText);
-                },
+                        _translateExtractedText(_extractedText);
+                      },
                 icon: _isTranslating
                     ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor:
-                    AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
                     : const Icon(Icons.translate),
                 label: Text(_isTranslating ? 'Translating...' : 'Translate'),
                 style: ElevatedButton.styleFrom(
@@ -1290,14 +1302,14 @@ class _DocumentsTabContentState extends State<DocumentsTabContent> {
                 onPressed: aiActionsDisabled
                     ? null
                     : () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          ChatScreen(documentContext: _extractedText),
-                    ),
-                  );
-                },
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ChatScreen(documentContext: _extractedText),
+                          ),
+                        );
+                      },
                 icon: const Icon(Icons.smart_toy),
                 label: const Text('Chat with AI'),
                 style: ElevatedButton.styleFrom(
@@ -1343,8 +1355,9 @@ class _ScanPdfTabContentState extends State<ScanPdfTabContent> {
     dynamic scannedDocuments;
 
     try {
-      scannedDocuments =
-      await FlutterDocScanner().getScannedDocumentAsPdf(page: 4);
+      scannedDocuments = await FlutterDocScanner().getScannedDocumentAsPdf(
+        page: 4,
+      );
 
       if (!mounted) return;
 
@@ -1398,7 +1411,6 @@ class _ScanPdfTabContentState extends State<ScanPdfTabContent> {
 
   @override
   Widget build(BuildContext context) {
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -1417,18 +1429,17 @@ class _ScanPdfTabContentState extends State<ScanPdfTabContent> {
             onPressed: _isScanning ? null : _scanDocumentAsPdf,
             icon: _isScanning
                 ? const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            )
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
                 : const Icon(Icons.document_scanner),
             label: Text(_isScanning ? 'Scanning...' : 'Scan Documents As PDF'),
             style: ElevatedButton.styleFrom(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             ),
           ),
         ],
@@ -1502,8 +1513,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final inputImage = InputImage.fromFilePath(image.path);
     final textRecognizer = TextRecognizer();
-    final RecognizedText recognizedText =
-    await textRecognizer.processImage(inputImage);
+    final RecognizedText recognizedText = await textRecognizer.processImage(
+      inputImage,
+    );
     textRecognizer.close();
 
     String extractedText = recognizedText.text.isEmpty
@@ -1533,9 +1545,9 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         title: Text(
           'Image OCR',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
         centerTitle: false,
         titleSpacing: 0,
@@ -1687,8 +1699,8 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
     return _languages.entries
         .firstWhere(
           (entry) => entry.value == code,
-      orElse: () => const MapEntry('Unknown', ''),
-    )
+          orElse: () => const MapEntry('Unknown', ''),
+        )
         .key;
   }
 
@@ -1703,7 +1715,7 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
 
     setState(() {
       _translatedText =
-      "Translating to ${_getLanguageName(_selectedTargetLanguageCode)}...";
+          "Translating to ${_getLanguageName(_selectedTargetLanguageCode)}...";
       _isTranslating = true;
     });
 
@@ -1751,7 +1763,7 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
         {
           'role': 'system',
           'content':
-          'You are an expert summarization bot. Provide a concise, three-sentence summary of the user\'s input text.',
+              'You are an expert summarization bot. Provide a concise, three-sentence summary of the user\'s input text.',
         },
         {'role': 'user', 'content': _extractedText},
       ];
@@ -1793,16 +1805,16 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
   Widget build(BuildContext context) {
     bool aiActionsDisabled =
         _isTranslating ||
-            _extractedText.isEmpty ||
-            _extractedText.contains('Could not recognize');
+        _extractedText.isEmpty ||
+        _extractedText.contains('Could not recognize');
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           'OCR Result',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
         centerTitle: false,
         titleSpacing: 0,
@@ -1853,9 +1865,8 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
                             });
                           }
                         },
-                        items: _languages.entries
-                            .map<DropdownMenuItem<String>>(
-                              (MapEntry<String, String> entry) {
+                        items: _languages.entries.map<DropdownMenuItem<String>>(
+                          (MapEntry<String, String> entry) {
                             return DropdownMenuItem<String>(
                               value: entry.value,
                               child: Text(
@@ -1874,18 +1885,19 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
                   onPressed: _isTranslating
                       ? null
                       : () {
-                    _translateText(_extractedText);
-                  },
+                          _translateText(_extractedText);
+                        },
                   icon: _isTranslating
                       ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor:
-                      AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
                       : const Icon(Icons.translate),
                   label: Text(_isTranslating ? 'Translating...' : 'Translate'),
                   style: ElevatedButton.styleFrom(
@@ -1935,9 +1947,9 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
               child: _isTranslating
                   ? const Center(child: CircularProgressIndicator())
                   : SelectableText(
-                _translatedText,
-                style: const TextStyle(fontSize: 16),
-              ),
+                      _translatedText,
+                      style: const TextStyle(fontSize: 16),
+                    ),
             ),
             const SizedBox(height: 30),
             Row(
@@ -1960,14 +1972,14 @@ class _ImageResultScreenState extends State<ImageResultScreen> {
                   onPressed: aiActionsDisabled
                       ? null
                       : () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            ChatScreen(documentContext: _extractedText),
-                      ),
-                    );
-                  },
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ChatScreen(documentContext: _extractedText),
+                            ),
+                          );
+                        },
                   icon: const Icon(Icons.smart_toy),
                   label: const Text('Chat with AI'),
                   style: ElevatedButton.styleFrom(
@@ -2142,11 +2154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 16),
           _buildSectionTitle('About'),
           const SizedBox(height: 8),
-          _buildListTile(
-            title: 'App Version',
-            subtitle: '1.0.0',
-            onTap: () {},
-          ),
+          _buildListTile(title: 'App Version', subtitle: '1.0.0', onTap: () {}),
           const SizedBox(height: 8),
           _buildListTile(
             title: 'Privacy Policy',
@@ -2184,9 +2192,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       subtitle: Text(subtitle),
       trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 
@@ -2201,9 +2207,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       subtitle: Text(subtitle),
       value: value,
       onChanged: onChanged,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
     );
   }
 
@@ -2235,4 +2239,3 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 }
-
